@@ -1,0 +1,6 @@
+{
+  "name": "groundgate",
+  "description": "A grounded-answer harness around open-weight LLMs with Devanagari-aware deterministic verification and single-escalation gate.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
