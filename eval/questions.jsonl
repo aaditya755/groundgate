@@ -1,0 +1,30 @@
+{"id": "Q_EN_01", "question": "How much annual financial grant can smallholder farmers receive under the crop welfare program?", "lang": "en", "answerable": true, "expected_sources": ["T01_EN"]}
+{"id": "Q_EN_02", "question": "What percentage of capital subsidy is provided for setting up agricultural solar pumps?", "lang": "en", "answerable": true, "expected_sources": ["T02_EN"]}
+{"id": "Q_EN_03", "question": "What is the maximum compensation paid for an insured milch cow in case of disease?", "lang": "en", "answerable": true, "expected_sources": ["T03_EN"]}
+{"id": "Q_EN_04", "question": "How much cashback is given per metric ton on vermicompost purchases?", "lang": "en", "answerable": true, "expected_sources": ["T04_EN"]}
+{"id": "Q_EN_05", "question": "How many years of operational maintenance warranty do suppliers provide for drip irrigation?", "lang": "en", "answerable": true, "expected_sources": ["T05_EN"]}
+{"id": "Q_EN_06", "question": "What is the grant amount offered for constructing a grain storage godown of 250 metric tons capacity?", "lang": "en", "answerable": true, "expected_sources": ["T06_EN"]}
+{"id": "Q_EN_07", "question": "What is the discount voucher value provided for purchasing power tillers?", "lang": "en", "answerable": true, "expected_sources": ["T07_EN"]}
+{"id": "Q_EN_08", "question": "What is the computational speedup of Shor's quantum algorithm compared to classical factoring?", "lang": "en", "answerable": false, "expected_sources": []}
+{"id": "Q_EN_09", "question": "What official fee is charged for emergency renewal of an international tourist passport?", "lang": "en", "answerable": false, "expected_sources": []}
+{"id": "Q_EN_10", "question": "What is the final calendar deadline date to submit an application for the Crop Welfare Grant?", "lang": "en", "answerable": false, "expected_sources": []}
+{"id": "Q_HI_01", "question": "फसल कल्याण कार्यक्रम के तहत किसानों को साल भर में कुल कितनी मदद मिलती है?", "lang": "hi", "answerable": true, "expected_sources": ["T01_HI"]}
+{"id": "Q_HI_02", "question": "कृषि कार्य के लिए सौर ऊर्जा पंप लगाने पर सरकार कितने प्रतिशत अनुदान देती है?", "lang": "hi", "answerable": true, "expected_sources": ["T02_HI"]}
+{"id": "Q_HI_03", "question": "पशुधन बीमा योजना में देशी गाय की सुरक्षा के लिए प्रति वर्ष कितना प्रीमियम देना होगा?", "lang": "hi", "answerable": true, "expected_sources": ["T03_HI"]}
+{"id": "Q_HI_04", "question": "जैविक खाद योजना में एक समिति एक वर्ष में ज्यादा से ज्यादा कितने टन पर छूट ले सकती है?", "lang": "hi", "answerable": true, "expected_sources": ["T04_HI"]}
+{"id": "Q_HI_05", "question": "सूक्ष्म ड्रिप सिंचाई में पाइप सामग्री की कुल लागत का कितना हिस्सा योजना वहन करती है?", "lang": "hi", "answerable": true, "expected_sources": ["T05_HI"]}
+{"id": "Q_HI_06", "question": "ग्रामीण इलाकों में धान्य गोदाम बनाने के लिए कितनी वित्तीय सहायता राशि स्वीकृत की जाती है?", "lang": "hi", "answerable": true, "expected_sources": ["T06_HI"]}
+{"id": "Q_HI_07", "question": "कृषि यांत्रिकीकरण के तहत टिलर उपकरण पर मिलने वाले कूपन का मूल्य बताएं।", "lang": "hi", "answerable": true, "expected_sources": ["T07_HI"]}
+{"id": "Q_HI_08", "question": "मंगल ग्रह की कक्षा में पहुंचने वाले अंतरिक्ष यान की औसत गति कितनी थी?", "lang": "hi", "answerable": false, "expected_sources": []}
+{"id": "Q_HI_09", "question": "अंतरराष्ट्रीय क्रिकेट मैच में नो बॉल फेंकने पर विपक्षी टीम को कितने अतिरिक्त रन मिलते हैं?", "lang": "hi", "answerable": false, "expected_sources": []}
+{"id": "Q_HI_10", "question": "सौर पंप योजना के लिए जिला कृषि अधिकारी का आधिकारिक दूरभाष नंबर क्या है?", "lang": "hi", "answerable": false, "expected_sources": []}
+{"id": "Q_MR_01", "question": "पीक कल्याण योजनेत नोंदणी केलेल्या शेतकऱ्यांना वर्षाकाठी किती आर्थिक मदत प्राप्त होते?", "lang": "mr", "answerable": true, "expected_sources": ["T01_MR"]}
+{"id": "Q_MR_02", "question": "शेतामध्ये सौर उर्जेवर चालणारा पंप बसवण्यासाठी शेतकऱ्याला स्वतःचा हिस्सा किती भरावा लागतो?", "lang": "mr", "answerable": true, "expected_sources": ["T02_MR"]}
+{"id": "Q_MR_03", "question": "दुग्ध जनावरांचा विमा उतरवल्यावर आजारी पडलेल्या गायीसाठी भरपाईची कमाल मर्यादा काय ठरवली आहे?", "lang": "mr", "answerable": true, "expected_sources": ["T03_MR"]}
+{"id": "Q_MR_04", "question": "सेंद्रिय शेतीसाठी गांडूळ खत विकत घेतल्यास प्रति टन किती रक्कम खात्यात परत मिळते?", "lang": "mr", "answerable": true, "expected_sources": ["T04_MR"]}
+{"id": "Q_MR_05", "question": "गोड्या पाण्यातील मत्स्य शेततळे तयार केल्यानंतर लाभार्थ्याने किती बियाणे सोडणे आवश्यक आहे?", "lang": "mr", "answerable": true, "expected_sources": ["T08_MR"]}
+{"id": "Q_MR_06", "question": "भाजीपाला लागवडीसाठी १००० चौरस मीटरचे हरितगृह उभारल्यास किती भत्ता मंजूर होतो?", "lang": "mr", "answerable": true, "expected_sources": ["T09_MR"]}
+{"id": "Q_MR_07", "question": "रेल्वेचे आरक्षित तिकीट रद्द केल्यानंतर प्रवाशाला किती परतावा रक्कम बँक खात्यात मिळते?", "lang": "mr", "answerable": false, "expected_sources": []}
+{"id": "Q_MR_08", "question": "दुभत्या जनावरांचा विमा काढण्यासाठी पशुवैद्यकीय डॉक्टरांची तपासणी फी किती ठरवली आहे?", "lang": "mr", "answerable": false, "expected_sources": []}
+{"id": "Q_MR_09", "question": "ठिबक सिंचन अनुदानाचा लाभ घेण्यासाठी अर्जदाराचे कमाल वय किती असणे आवश्यक आहे?", "lang": "mr", "answerable": false, "expected_sources": []}
+{"id": "Q_MR_10", "question": "पीक कल्याण अनुदानाचा अर्ज भरण्यासाठी शेती सातबारा उताऱ्यावर कोणती नोंद असावी लागते?", "lang": "mr", "answerable": false, "expected_sources": []}
