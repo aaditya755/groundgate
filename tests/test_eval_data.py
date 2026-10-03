@@ -155,7 +155,7 @@ class TestEvalData(unittest.TestCase):
 
         # average model calls: (1 + 2 + 0 + 1) / 4 = 1.0
         self.assertEqual(metrics["avg_model_calls"], 1.0)
-        self.assertEqual(metrics["avg_extra_model_calls"], 0.0)
+        self.assertEqual(metrics["avg_extra_model_calls"], 0.25)
 
         # average latency: (1.0 + 2.0 + 0.1 + 0.9) / 4 = 1.0
         self.assertEqual(metrics["avg_latency"], 1.0)

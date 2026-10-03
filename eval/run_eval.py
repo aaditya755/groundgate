@@ -127,7 +127,7 @@ def compute_metrics(records: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
     total_calls = sum(r.get("model_calls", 0) for r in records)
     avg_model_calls = round(total_calls / total, 2)
     # Extra model calls beyond the baseline 1 call
-    avg_extra_model_calls = round(avg_model_calls - 1.0, 2)
+    avg_extra_model_calls = round(sum(max(0, r.get("model_calls", 0) - 1) for r in records) / total, 2)
 
     total_lat = sum(r.get("latency", 0.0) for r in records)
     avg_latency = round(total_lat / total, 2)
