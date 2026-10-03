@@ -60,6 +60,7 @@ class ExecutionTrace:
     final_outcome: str = "failed"  # "passed", "refused", or "failed"
     final_answer: str = ""
     final_sources: list[str] = field(default_factory=list)
+    provider_error: str | None = None
 
     def add_attempt(self, attempt: AttemptRecord) -> None:
         """Add an attempt record and increment call counter."""
@@ -83,4 +84,5 @@ class ExecutionTrace:
             "final_outcome": self.final_outcome,
             "final_answer": self.final_answer,
             "final_sources": self.final_sources,
+            "provider_error": self.provider_error,
         }

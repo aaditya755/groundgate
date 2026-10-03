@@ -10,9 +10,9 @@ from __future__ import annotations
 
 import unittest
 
+from groundgate.normalize import candidate_languages
 from groundgate.retrieve import (
     BM25Index,
-    char_ngrams,
     extract_features,
     retrieve_passages,
 )
@@ -55,17 +55,8 @@ class TestRetrieve(unittest.TestCase):
             },
         ]
 
-    def test_char_ngrams(self) -> None:
-        """char_ngrams extracts sequential 3-character slices from Devanagari and Latin words."""
-        marathi_word = "शेतकरी"
-        ngrams = char_ngrams(marathi_word, n=3)
-        self.assertIn("शेत", ngrams)
-        self.assertIn("ेतक", ngrams)
-        self.assertIn("तकर", ngrams)
-        self.assertIn("करी", ngrams)
-
     def test_extract_features(self) -> None:
-        """extract_features combines content words and character 3-grams."""
+        """extract_features combines content words and per-word character 3-grams."""
         phrase = "शेतकरी अनुदान"
         features = extract_features(phrase, lang="mr")
         self.assertIn("शेतकरी", features)
@@ -96,7 +87,6 @@ class TestRetrieve(unittest.TestCase):
         self.assertTrue(precheck_passed)
         self.assertGreater(top_score, 1.0)
         self.assertEqual(retrieved[0]["id"], "DOC_MR_01")
-        # Ensure only Marathi passages were considered
         self.assertEqual(retrieved[0]["lang"], "mr")
 
     def test_bm25_finds_correct_passage_hindi(self) -> None:
@@ -113,6 +103,22 @@ class TestRetrieve(unittest.TestCase):
         self.assertEqual(retrieved[0]["id"], "DOC_HI_01")
         self.assertEqual(retrieved[0]["lang"], "hi")
 
+    def test_ambiguous_marathi_question_without_markers_retrieves_marathi_doc(self) -> None:
+        """Fix 1: An ambiguous Marathi question without marker words retrieves DOC_MR_01."""
+        # Query has no distinct markers and returns ['hi', 'mr'] from candidate_languages
+        ambiguous_mr_query = "पीएम किसान सन्मान योजना"
+        self.assertEqual(candidate_languages(ambiguous_mr_query), ["hi", "mr"])
+
+        retrieved, top_score, precheck_passed = retrieve_passages(
+            query=ambiguous_mr_query,
+            passages=self.sample_passages,
+            top_k=2,
+            min_score=1.0,
+        )
+        self.assertTrue(precheck_passed)
+        self.assertEqual(retrieved[0]["id"], "DOC_MR_01")
+        self.assertEqual(retrieved[0]["lang"], "mr")
+
     def test_precheck_refusal_unrelated_query(self) -> None:
         """Completely unrelated query yields low BM25 score, triggering precheck failure."""
         unrelated_query = "What is the speed of light in quantum astrophysics?"
@@ -122,7 +128,6 @@ class TestRetrieve(unittest.TestCase):
             top_k=2,
             min_score=2.5,
         )
-        # Score should be very low (close to 0.0) and fail precheck
         self.assertFalse(precheck_passed)
         self.assertLess(top_score, 2.5)
 

@@ -26,7 +26,13 @@ class DiskCache:
     def __init__(self, cache_dir: str | Path = "cache", replay_only: bool = False) -> None:
         self.cache_dir = Path(cache_dir)
         self.replay_only = replay_only
-        self.cache_dir.mkdir(parents=True, exist_ok=True)
+        self.disabled = False
+
+        # If cache directory cannot be created, gracefully disable cache rather than crashing
+        try:
+            self.cache_dir.mkdir(parents=True, exist_ok=True)
+        except Exception:
+            self.disabled = True
 
     @classmethod
     def from_env(cls, cache_dir: str | Path = "cache") -> DiskCache:
@@ -58,11 +64,17 @@ class DiskCache:
         model: str,
         messages: list[dict[str, Any]],
         params: dict[str, Any],
+        raise_on_miss: bool = False,
     ) -> dict[str, Any] | None:
         """Retrieve cached completion record if present.
 
-        Raises CacheMissError if replay_only is enabled and item is not in cache.
+        If raise_on_miss=True and replay_only=True, raises CacheMissError.
         """
+        if self.disabled:
+            if self.replay_only and raise_on_miss:
+                raise CacheMissError("DiskCache is disabled and REPLAY_ONLY is active.")
+            return None
+
         key = self._compute_key(provider, model, messages, params)
         file_path = self.cache_dir / f"{key}.json"
 
@@ -74,7 +86,7 @@ class DiskCache:
                 # If cached file is corrupted, treat as miss
                 return None
 
-        if self.replay_only:
+        if self.replay_only and raise_on_miss:
             raise CacheMissError(
                 f"REPLAY_ONLY is enabled and cache key {key} ({provider}/{model}) was not found on disk."
             )
@@ -89,25 +101,37 @@ class DiskCache:
         params: dict[str, Any],
         completion_data: dict[str, Any],
     ) -> None:
-        """Write completion record to disk cache."""
-        key = self._compute_key(provider, model, messages, params)
-        file_path = self.cache_dir / f"{key}.json"
+        """Write completion record to disk cache; silently continues on any write errors."""
+        if self.disabled:
+            return
 
-        record = {
-            "key": key,
-            "provider": provider,
-            "model": model,
-            "messages": messages,
-            "params": params,
-            "completion": completion_data,
-        }
+        try:
+            key = self._compute_key(provider, model, messages, params)
+            file_path = self.cache_dir / f"{key}.json"
 
-        temp_path = self.cache_dir / f"{key}.tmp"
-        with open(temp_path, "w", encoding="utf-8") as f:
-            json.dump(record, f, indent=2, ensure_ascii=False)
-        temp_path.replace(file_path)
+            record = {
+                "key": key,
+                "provider": provider,
+                "model": model,
+                "messages": messages,
+                "params": params,
+                "completion": completion_data,
+            }
+
+            temp_path = self.cache_dir / f"{key}.tmp"
+            with open(temp_path, "w", encoding="utf-8") as f:
+                json.dump(record, f, indent=2, ensure_ascii=False)
+            temp_path.replace(file_path)
+        except Exception:
+            # Continue silently on write failures (disk full, permissions, etc.)
+            pass
 
     def clear(self) -> None:
         """Clear all cached entries."""
+        if self.disabled:
+            return
         for file in self.cache_dir.glob("*.json"):
-            file.unlink(missing_ok=True)
+            try:
+                file.unlink(missing_ok=True)
+            except Exception:
+                pass

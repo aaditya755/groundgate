@@ -9,6 +9,7 @@ htmlcov/
 dist/
 build/
 *.egg-info/
+.venv/
 
 # Environment files
 .env
@@ -19,6 +20,10 @@ build/
 cache/
 eval/results/*.json
 !eval/results/.gitkeep
+
+# Reports & logs
+test_report.txt
+smoke_report.txt
 
 # Node.js artifacts
 node_modules/

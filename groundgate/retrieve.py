@@ -4,8 +4,7 @@ Why this module exists:
 Traditional tokenizers split Marathi and Hindi on boundaries that miss inflected forms
 (e.g., 'शेतकऱ्यांना' vs 'शेतकरी'). Combining word tokens with character 3-grams allows BM25
 to match morphological variants within a language without requiring an external lemmatizer.
-Because character n-grams cannot cross language boundaries, retrieval filters to the question's
-detected language.
+Because character n-grams cannot cross language boundaries, retrieval filters to candidate languages.
 """
 
 from __future__ import annotations
@@ -13,39 +12,22 @@ from __future__ import annotations
 import math
 from typing import Any, Mapping, Sequence
 
-from groundgate.normalize import detect_language, tokenize
-
-
-def char_ngrams(text: str, n: int = 3) -> list[str]:
-    """Generate character n-grams from text after stripping whitespace and punctuation.
-
-    Why: In Devanagari, root words frequently carry agglutinative case markers (vibhakti).
-    Character 3-grams capture the shared root across grammatical inflections.
-    """
-    cleaned = "".join(ch for ch in text.lower() if not ch.isspace() and ch.isalnum() or 0x0900 <= ord(ch) <= 0x097F)
-    if len(cleaned) < n:
-        return [cleaned] if cleaned else []
-    return [cleaned[i : i + n] for i in range(len(cleaned) - n + 1)]
+from groundgate.normalize import candidate_languages, char_ngrams, tokenize
 
 
 def extract_features(text: str, lang: str | None = None) -> list[str]:
-    """Extract both word content tokens and character 3-grams for indexing and querying.
+    """Extract both word content tokens and character 3-grams per word (skipping stopwords).
 
-    Why: Hybrid representation gives high exact-word precision while character 3-grams
-    provide robust recall for morphological variants in Hindi and Marathi.
+    Why per-word n-grams without stopwords:
+    Prevents cross-word boundary artifacts and stopword contamination in n-gram indexing.
     """
     words = tokenize(text, remove_stopwords=True, lang=lang)
-    ngrams = char_ngrams(text, n=3)
+    ngrams = char_ngrams(text, n=3, lang=lang)
     return words + ngrams
 
 
 class BM25Index:
-    """Pure-Python BM25 implementation supporting multilingual word and n-gram indexing.
-
-    Why pure Python:
-    Eliminates C/Rust compilation issues and external package dependencies for hackathon
-    portability while maintaining sub-millisecond ranking speed on small knowledge packs.
-    """
+    """Pure-Python BM25 implementation supporting multilingual word and n-gram indexing."""
 
     def __init__(
         self,
@@ -81,11 +63,7 @@ class BM25Index:
         self.avg_doc_len = (total_len / self.num_docs) if self.num_docs > 0 else 0.0
 
     def score(self, query: str, lang: str | None = None) -> list[tuple[float, Mapping[str, Any]]]:
-        """Compute BM25 relevance scores for all documents given a query string.
-
-        Why IDF with +1 smoothing: Prevents negative IDF weights for terms that appear
-        in more than half the corpus.
-        """
+        """Compute BM25 relevance scores for all documents given a query string."""
         if self.num_docs == 0:
             return []
 
@@ -100,7 +78,6 @@ class BM25Index:
             if df == 0:
                 continue
 
-            # Robertson-Spärck Jones IDF formula with +1 floor
             idf = math.log(1.0 + (self.num_docs - df + 0.5) / (df + 0.5))
 
             for idx in range(self.num_docs):
@@ -124,32 +101,34 @@ def retrieve_passages(
     min_score: float = 1.5,
     filter_language: bool = True,
 ) -> tuple[list[dict[str, Any]], float, bool]:
-    """Retrieve top-k passages matching the query, filtered by the query's detected language.
+    """Retrieve top-k passages matching query across candidate languages.
 
     Returns:
     - retrieved: list of passages sorted by relevance
     - top_score: highest BM25 score achieved
     - precheck_passed: True if top_score >= min_score, False otherwise
 
-    Why language filtering:
-    Since BM25 matches tokens and character n-grams, cross-language matching will match
-    noise or fail completely. Questions in Marathi only search Marathi passages.
+    Why union of candidate languages:
+    Short Devanagari questions may not have distinct Hindi or Marathi marker words.
+    Searching the union of candidate languages allows the highest-scoring passage
+    in the corpus to resolve the language ambiguity dynamically.
     """
     if not passages:
         return [], 0.0, False
 
-    detected_lang = detect_language(query)
+    candidates = candidate_languages(query)
 
-    # Filter corpus to matching language if requested
     if filter_language:
-        lang_passages = [p for p in passages if p.get("lang") == detected_lang]
-        # If corpus has no passages in detected language, fallback to all passages
-        candidate_passages = lang_passages if lang_passages else list(passages)
+        candidate_passages = [p for p in passages if p.get("lang") in candidates]
+        if not candidate_passages:
+            candidate_passages = list(passages)
     else:
         candidate_passages = list(passages)
 
+    # Use primary candidate for stopword filtering in query feature extraction
+    primary_lang = candidates[0] if len(candidates) == 1 else None
     index = BM25Index(candidate_passages)
-    ranked = index.score(query, lang=detected_lang)
+    ranked = index.score(query, lang=primary_lang)
 
     if not ranked:
         return [], 0.0, False

@@ -26,21 +26,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 from groundgate.gate import parse_model_json
 from groundgate.normalize import detect_language, detect_script
-
-# Provider endpoint configurations
-# Why: Both providers expose OpenAI-compatible REST endpoints
-PROVIDER_CONFIGS: dict[str, dict[str, str]] = {
-    "nvidia": {
-        "base_url": "https://integrate.api.nvidia.com/v1",
-        "env_key": "NVIDIA_API_KEY",
-        "name": "NVIDIA API Catalog",
-    },
-    "openrouter": {
-        "base_url": "https://openrouter.ai/api/v1",
-        "env_key": "OPENROUTER_API_KEY",
-        "name": "OpenRouter",
-    },
-}
+from groundgate.providers import PROVIDER_METADATA, get_model_id
 
 # System prompt enforcing strict JSON contract
 JSON_CONTRACT_SYSTEM_PROMPT = """You are a grounded question-answering assistant.
@@ -86,10 +72,7 @@ SMOKE_TEST_CASES = [
 
 
 def load_env_file() -> None:
-    """Manually parse .env file if python-dotenv is not installed.
-
-    Why: Avoids hard dependencies when running smoke checks in minimal environments.
-    """
+    """Manually parse .env file if python-dotenv is not installed."""
     env_path = os.path.join(os.path.dirname(__file__), "..", ".env")
     if not os.path.exists(env_path):
         return
@@ -168,11 +151,8 @@ def http_get_json(
 
 
 def check_models_for_provider(provider_key: str) -> None:
-    """List available models from the provider endpoint.
-
-    Why: Avoids guessing model IDs; verifies whether configured models actually exist.
-    """
-    config = PROVIDER_CONFIGS.get(provider_key)
+    """List available models from the provider endpoint."""
+    config = PROVIDER_METADATA.get(provider_key)
     if not config:
         return
 
@@ -194,7 +174,6 @@ def check_models_for_provider(provider_key: str) -> None:
     model_ids = [m.get("id", "") for m in model_entries if isinstance(m, dict)]
     print(f"  [SUCCESS] Endpoint returned {len(model_ids)} available models.")
 
-    # Search for Nemotron models
     nemotron_models = [m for m in model_ids if "nemotron" in m.lower()]
     if nemotron_models:
         print("  Found Nemotron models:")
@@ -212,8 +191,8 @@ def run_smoke_test_case(
     tier_label: str,
     test_case: dict[str, str],
 ) -> dict[str, Any]:
-    """Execute a single question against the target model and verify output."""
-    config = PROVIDER_CONFIGS[provider_key]
+    """Execute a single question against target model and verify output."""
+    config = PROVIDER_METADATA[provider_key]
     api_key = os.environ.get(config["env_key"], "").strip()
 
     messages = [
@@ -224,16 +203,24 @@ def run_smoke_test_case(
         },
     ]
 
-    # max_tokens set to 1024 to give sufficient generation room for reasoning and JSON
-    payload = {
+    payload: dict[str, Any] = {
         "model": model_id,
         "messages": messages,
         "temperature": 0.0,
         "max_tokens": 1024,
     }
+    reasoning_effort = os.environ.get("REASONING_EFFORT", "").strip()
+    if reasoning_effort:
+        payload["extra_body"] = {"reasoning_effort": reasoning_effort}
 
     endpoint_url = f"{config['base_url']}/chat/completions"
     status, resp_data, err, elapsed = http_post_json(endpoint_url, payload, api_key)
+
+    # Retry once without extra_body if 400 occurred
+    if status == 400 and "extra_body" in payload:
+        payload_retry = dict(payload)
+        payload_retry.pop("extra_body", None)
+        status, resp_data, err, elapsed = http_post_json(endpoint_url, payload_retry, api_key)
 
     result_record = {
         "lang": test_case["lang"],
@@ -255,15 +242,13 @@ def run_smoke_test_case(
         result_record["answer_preview"] = f"Error: {err}"
         return result_record
 
-    # Extract assistant message and finish reason
     choices = resp_data.get("choices", [])
     if not choices:
         result_record["answer_preview"] = "Empty choices array in response"
         return result_record
 
     first_choice = choices[0]
-    finish_reason = first_choice.get("finish_reason", "unknown")
-    result_record["finish_reason"] = finish_reason
+    result_record["finish_reason"] = first_choice.get("finish_reason", "unknown")
 
     raw_content = first_choice.get("message", {}).get("content", "")
     parsed_json, parse_err = parse_model_json(raw_content)
@@ -289,26 +274,18 @@ def main() -> None:
 
     load_env_file()
 
-    # Determine providers to test
     raw_providers = os.environ.get("PROVIDER_ORDER", "nvidia,openrouter")
     providers = [p.strip().lower() for p in raw_providers.split(",") if p.strip()]
 
-    tier1_model = os.environ.get("TIER1_MODEL", "").strip()
-    tier2_model = os.environ.get("TIER2_MODEL", "").strip()
-
     print(f"Configured PROVIDER_ORDER : {providers}")
-    print(f"Configured TIER1_MODEL   : {tier1_model or '(Not set)'}")
-    print(f"Configured TIER2_MODEL   : {tier2_model or '(Not set)'}")
 
-    # Check /v1/models for each configured provider
     for p in providers:
-        if p in PROVIDER_CONFIGS:
+        if p in PROVIDER_METADATA:
             check_models_for_provider(p)
 
-    # Check if models and API keys are present
     active_providers = [
         p for p in providers
-        if p in PROVIDER_CONFIGS and os.environ.get(PROVIDER_CONFIGS[p]["env_key"], "").strip()
+        if p in PROVIDER_METADATA and os.environ.get(PROVIDER_METADATA[p]["env_key"], "").strip()
     ]
 
     if not active_providers:
@@ -317,24 +294,31 @@ def main() -> None:
         print("To run live smoke calls against NVIDIA or OpenRouter:")
         print("  1. Copy .env.example to .env")
         print("  2. Set NVIDIA_API_KEY or OPENROUTER_API_KEY")
-        print("  3. Set TIER1_MODEL and TIER2_MODEL (see provider model list)")
+        print("  3. Set TIER1_MODEL / TIER2_MODEL (or per-provider models)")
         print("  4. Re-run: python scripts/smoke.py")
         print("!" * 70)
         return
 
-    if not tier1_model and not tier2_model:
-        print("\nERROR: Neither TIER1_MODEL nor TIER2_MODEL is defined in environment.")
-        return
-
-    # Select primary provider
     primary_provider = active_providers[0]
     print(f"\nRunning multilingual test cases via: {primary_provider.upper()}...")
 
     models_to_test: list[tuple[str, str]] = []
-    if tier1_model:
-        models_to_test.append(("Tier-1", tier1_model))
-    if tier2_model and tier2_model != tier1_model:
-        models_to_test.append(("Tier-2", tier2_model))
+    try:
+        t1_model = get_model_id("tier1", primary_provider)
+        models_to_test.append(("Tier-1", t1_model))
+    except ValueError as e:
+        print(f"Warning: {e}")
+
+    try:
+        t2_model = get_model_id("tier2", primary_provider)
+        if not models_to_test or t2_model != models_to_test[0][1]:
+            models_to_test.append(("Tier-2", t2_model))
+    except ValueError as e:
+        print(f"Warning: {e}")
+
+    if not models_to_test:
+        print("ERROR: No valid models configured for primary provider.")
+        return
 
     results: list[dict[str, Any]] = []
 
@@ -349,7 +333,6 @@ def main() -> None:
                 f"JSON={'OK' if res['json_valid'] else 'FAIL'}, Lang={res['detected_lang']})"
             )
 
-    # Render summary table with finish_reason
     print("\n" + "=" * 105)
     print(f"{'Lang':<8} {'Tier':<8} {'Latency':<8} {'Status':<10} {'Finish':<10} {'JSON?':<6} {'Script%':<8} {'Detected':<8} {'Preview'}")
     print("-" * 105)
@@ -363,7 +346,6 @@ def main() -> None:
         )
     print("=" * 105)
 
-    # Marathi GO/NO-GO verdict
     marathi_results = [r for r in results if r["lang"] == "mr"]
     if marathi_results:
         marathi_json_ok = all(r["json_valid"] for r in marathi_results)

@@ -2,13 +2,13 @@
 
 Why this module exists:
 This is the core orchestrator of groundgate:
-1. Detects question language (en/hi/mr) and filters retrieval.
+1. Candidate language routing: resolves ambiguous Devanagari text using top-ranked retrieval.
 2. BM25 Pre-check: If relevance is below threshold, safely refuses BEFORE making model calls (saves quota).
 3. Invokes Tier-1 fast model with structured JSON contract.
 4. Deterministic Gate: Runs pure-code verification checks.
 5. Single Escalation: If Tier-1 fails verification, escalates ONCE to Tier-2 with itemized failure reasons.
-6. Safe Refusals: Whenever a refusal occurs (pre-check or model refuse=true), discards generated text and
-   returns a verified, safe refusal in the user's language.
+6. Safe Refusals: Whenever a refusal occurs, discards generated text and returns a verified,
+   safe refusal in the resolved language.
 """
 
 from __future__ import annotations
@@ -16,16 +16,15 @@ from __future__ import annotations
 import os
 from typing import Any, Mapping, Sequence
 
+from groundgate.cache import CacheMissError
 from groundgate.contract import build_escalation_messages, build_messages
 from groundgate.gate import GateResult, verify_grounding
-from groundgate.normalize import detect_language
+from groundgate.normalize import candidate_languages
 from groundgate.providers import ProviderManager
 from groundgate.retrieve import retrieve_passages
 from groundgate.trace import AttemptRecord, ExecutionTrace
 
 # Standard safe refusal strings in each supported language
-# Why: LLMs often append apologetic or conversational text during refusals.
-# Replacing model text with verified strings ensures 100% deterministic, clean refusals.
 SAFE_REFUSALS: dict[str, str] = {
     "en": "I cannot answer this question based on the provided sources.",
     "hi": "प्रदान किए गए स्रोतों के आधार पर मैं इस प्रश्न का उत्तर नहीं दे सकता।",
@@ -60,12 +59,10 @@ class GroundingHarness:
             if overlap_threshold is not None
             else float(os.environ.get("OVERLAP_THRESHOLD", "0.60"))
         )
-        self.tier1_model = (
-            tier1_model or os.environ.get("TIER1_MODEL", "nvidia/nemotron-3-ultra-550b-a55b:free")
-        ).strip()
-        self.tier2_model = (
-            tier2_model or os.environ.get("TIER2_MODEL", "nvidia/nemotron-3-ultra-550b-a55b:free")
-        ).strip()
+
+        # No hardcoded model defaults; must come from parameters or environment
+        self.tier1_model = (tier1_model or os.environ.get("TIER1_MODEL", "")).strip() or None
+        self.tier2_model = (tier2_model or os.environ.get("TIER2_MODEL", "")).strip() or None
 
     def ask(
         self,
@@ -83,13 +80,13 @@ class GroundingHarness:
             - model_calls: int (total model executions)
             - trace: dict (detailed step-by-step audit record)
         """
-        detected_lang = detect_language(question)
+        candidates = candidate_languages(question)
         trace = ExecutionTrace(
             question=question,
-            detected_language=detected_lang,
+            detected_language=candidates[0] if len(candidates) == 1 else "ambiguous",
         )
 
-        # Step 1: Retrieval filtered by detected language
+        # Step 1: Retrieval across candidate languages
         retrieved, top_score, precheck_passed = retrieve_passages(
             query=question,
             passages=knowledge_pack,
@@ -103,9 +100,19 @@ class GroundingHarness:
         trace.precheck_passed = precheck_passed
         trace.retrieved_passage_ids = [str(p.get("id", "")) for p in retrieved]
 
+        # Resolve ambiguous language using the top-ranked passage's language
+        if len(candidates) == 1:
+            resolved_lang = candidates[0]
+        elif retrieved and retrieved[0].get("lang"):
+            resolved_lang = str(retrieved[0].get("lang"))
+        else:
+            resolved_lang = candidates[0]
+
+        trace.detected_language = resolved_lang
+
         # Step 2: Pre-check refusal (saves API quota when query is unsupported)
         if not precheck_passed or not retrieved:
-            safe_text = get_safe_refusal(detected_lang)
+            safe_text = get_safe_refusal(resolved_lang)
             trace.final_outcome = "refused"
             trace.final_answer = safe_text
             trace.final_sources = []
@@ -123,14 +130,18 @@ class GroundingHarness:
         try:
             comp_tier1 = self.provider_manager.call_model(
                 model_id=self.tier1_model,
+                tier="tier1",
                 messages=tier1_messages,
             )
+        except CacheMissError:
+            # MUST NOT swallow CacheMissError; propagate for replay-only verification
+            raise
         except Exception as exc:
-            # If all providers fail, refuse safely
-            safe_text = get_safe_refusal(detected_lang)
+            safe_text = get_safe_refusal(resolved_lang)
             trace.final_outcome = "failed"
             trace.final_answer = safe_text
             trace.final_sources = []
+            trace.provider_error = str(exc)
             return {
                 "answer": safe_text,
                 "sources": [],
@@ -163,9 +174,8 @@ class GroundingHarness:
         trace.add_attempt(record_1)
 
         # Check for model refusal on Tier-1
-        # RULE: When model returns refuse=True, DISCARD model's text and return safe refusal
         if gate_res_1.outcome == "refused":
-            safe_text = get_safe_refusal(detected_lang)
+            safe_text = get_safe_refusal(resolved_lang)
             trace.final_outcome = "refused"
             trace.final_answer = safe_text
             trace.final_sources = []
@@ -206,13 +216,17 @@ class GroundingHarness:
         try:
             comp_tier2 = self.provider_manager.call_model(
                 model_id=self.tier2_model,
+                tier="tier2",
                 messages=tier2_messages,
             )
-        except Exception:
-            safe_text = get_safe_refusal(detected_lang)
+        except CacheMissError:
+            raise
+        except Exception as exc:
+            safe_text = get_safe_refusal(resolved_lang)
             trace.final_outcome = "failed"
             trace.final_answer = safe_text
             trace.final_sources = []
+            trace.provider_error = str(exc)
             return {
                 "answer": safe_text,
                 "sources": [],
@@ -246,7 +260,7 @@ class GroundingHarness:
 
         # Handle Tier-2 refusal
         if gate_res_2.outcome == "refused":
-            safe_text = get_safe_refusal(detected_lang)
+            safe_text = get_safe_refusal(resolved_lang)
             trace.final_outcome = "refused"
             trace.final_answer = safe_text
             trace.final_sources = []
@@ -276,7 +290,7 @@ class GroundingHarness:
             }
 
         # Both Tier-1 and Tier-2 failed verification -> Safely refuse
-        safe_text = get_safe_refusal(detected_lang)
+        safe_text = get_safe_refusal(resolved_lang)
         trace.final_outcome = "failed"
         trace.final_answer = safe_text
         trace.final_sources = []

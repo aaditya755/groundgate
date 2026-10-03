@@ -14,6 +14,7 @@ from groundgate.normalize import (
     extract_numbers,
     detect_script,
     detect_language,
+    candidate_languages,
 )
 from groundgate.gate import (
     GateResult,
@@ -22,7 +23,6 @@ from groundgate.gate import (
 from groundgate.retrieve import (
     BM25Index,
     retrieve_passages,
-    char_ngrams,
     extract_features,
 )
 from groundgate.contract import (
@@ -39,6 +39,8 @@ from groundgate.providers import (
     CompletionResult,
     ProviderManager,
     ProviderError,
+    RateLimiter,
+    get_model_id,
 )
 from groundgate.trace import (
     ExecutionTrace,
@@ -60,11 +62,11 @@ __all__ = [
     "extract_numbers",
     "detect_script",
     "detect_language",
+    "candidate_languages",
     "GateResult",
     "verify_grounding",
     "BM25Index",
     "retrieve_passages",
-    "char_ngrams",
     "extract_features",
     "SYSTEM_PROMPT",
     "format_context",
@@ -75,6 +77,8 @@ __all__ = [
     "CompletionResult",
     "ProviderManager",
     "ProviderError",
+    "RateLimiter",
+    "get_model_id",
     "ExecutionTrace",
     "AttemptRecord",
     "GroundingHarness",
