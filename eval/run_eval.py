@@ -26,6 +26,10 @@ from typing import Any, Mapping, Sequence
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
+# Load .env so provider keys and model IDs reach the harness
+from dotenv import load_dotenv
+load_dotenv(REPO_ROOT / ".env")
+
 from groundgate.contract import build_messages, format_context
 from groundgate.gate import parse_model_json, verify_grounding
 from groundgate.harness import GroundingHarness, get_safe_refusal
