@@ -1,14 +1,10 @@
-#!/usr/bin/env python3
-"""Multilingual RAG benchmark runner comparing Raw vs LLM-as-Judge vs GroundGate.
+"""Evaluation runner comparing Raw baseline vs LLM-as-a-Judge vs GroundGate harness.
 
-Why this runner exists:
-To evaluate grounding strategies objectively, we run identical queries through:
-1. (a) Raw baseline: Tier-1 model with JSON contract and retrieval, but NO gate.
-2. (b) LLM-as-Judge: Raw output evaluated by a second Tier-1 model call for groundedness.
-3. (c) Gate (groundgate): Full deterministic verification with single-escalation cascade.
-
-All three setups share the exact same retrieval logic and prompt formatting, allowing
-identical prompt calls to hit the disk cache and share baseline model executions.
+Why this script exists:
+To evaluate grounding performance, failure modes, latency, and cost tradeoffs
+across English, Hindi, and Marathi questions on a shared knowledge pack.
+It enforces identical retrieval and caching across all three evaluation setups,
+handling rate limits, retries, individual question failures, and threshold sweeps.
 """
 
 from __future__ import annotations
@@ -20,32 +16,36 @@ import os
 import sys
 import time
 from pathlib import Path
-from typing import Any, Mapping, Sequence
+from typing import Any
 
-# Add workspace root to sys.path so groundgate package can be imported directly
 REPO_ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(REPO_ROOT))
 
-# Load .env so provider keys and model IDs reach the harness
-from dotenv import load_dotenv
-load_dotenv(REPO_ROOT / ".env")
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv(REPO_ROOT / ".env")
+except ImportError:
+    pass
+
+# Ensure repository root is on sys.path
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
 from groundgate.contract import build_messages, format_context
 from groundgate.gate import parse_model_json, verify_grounding
 from groundgate.harness import GroundingHarness, get_safe_refusal
 from groundgate.normalize import candidate_languages
-from groundgate.providers import ProviderManager, RateLimiter
+from groundgate.providers import ProviderError, ProviderManager, RateLimiter
 from groundgate.retrieve import retrieve_passages
 
-JUDGE_SYSTEM_PROMPT = """You are a strict factual grounding verifier.
-Review the provided Reference Context, Question, and Candidate Answer.
-Determine whether EVERY factual statement and number in Candidate Answer is strictly
-supported by the Reference Context. Do not allow assumptions or outside knowledge.
-Return raw JSON with a single boolean field:
-{"grounded": true}
-or
-{"grounded": false}
-Do not wrap your response in markdown fences. Return raw JSON only."""
+JUDGE_SYSTEM_PROMPT = (
+    "You are a strict evaluation judge assessing factual grounding. "
+    "Given a reference context, a user question, and a candidate answer, determine whether "
+    "every single claim and number in the candidate answer is directly supported by the context. "
+    "If the answer invents numbers, mentions unsupported entities, or contradicts context, set grounded=false. "
+    "Output MUST be valid JSON adhering strictly to this schema:\n"
+    '{"grounded": bool, "reason": "concise explanation"}'
+)
 
 
 def load_jsonl(path: Path | str) -> list[dict[str, Any]]:
@@ -54,21 +54,30 @@ def load_jsonl(path: Path | str) -> list[dict[str, Any]]:
     with open(path, "r", encoding="utf-8") as f:
         for line in f:
             stripped = line.strip()
-            if stripped and not stripped.startswith("#"):
+            if stripped:
                 records.append(json.loads(stripped))
     return records
 
 
-def compute_metrics(records: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
-    """Compute benchmark metrics across a collection of evaluation records.
+def compute_metrics(records: list[dict[str, Any]]) -> dict[str, Any]:
+    """Compute benchmark metrics across evaluation records.
 
-    Why this function is decoupled:
-    Permits deterministic unit testing on synthetic result sets without invoking network.
+    Why this design:
+    Excludes questions with outcome == 'error' from every rate's denominator,
+    counting them in an explicit 'errors' field per setup.
+    Calculates citation validity, ungrounded answer rates, trap handling,
+    and average model calls cleanly without division-by-zero errors.
     """
     total = len(records)
-    if total == 0:
+    errors_count = sum(1 for r in records if r.get("outcome") == "error")
+    valid_records = [r for r in records if r.get("outcome") != "error"]
+    total_valid = len(valid_records)
+
+    if total_valid == 0:
         return {
-            "total_questions": 0,
+            "total_questions": total,
+            "valid_questions": 0,
+            "errors": errors_count,
             "citation_valid_rate": 0.0,
             "ungrounded_answer_rate": 0.0,
             "wrong_answer_rate_on_traps": 0.0,
@@ -80,9 +89,9 @@ def compute_metrics(records: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
             "escalation_rate": 0.0,
         }
 
-    traps = [r for r in records if not r.get("answerable", True)]
-    answerables = [r for r in records if r.get("answerable", True)]
-    answered = [r for r in records if r.get("outcome") == "passed"]
+    traps = [r for r in valid_records if not r.get("answerable", True)]
+    answerables = [r for r in valid_records if r.get("answerable", True)]
+    answered = [r for r in valid_records if r.get("outcome") == "passed"]
 
     # 1. Citation-valid rate: answered outputs whose sources are non-empty subset of retrieved IDs
     if answered:
@@ -100,7 +109,6 @@ def compute_metrics(records: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
     if answered:
         ungrounded = 0
         for r in answered:
-            # If the record already recorded gate_passed=False, or verification fails
             if not r.get("is_grounded", True):
                 ungrounded += 1
         ungrounded_answer_rate = round(ungrounded / len(answered), 3)
@@ -128,19 +136,22 @@ def compute_metrics(records: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
     else:
         refusal_rate_on_answerable = 0.0
 
-    total_calls = sum(r.get("model_calls", 0) for r in records)
-    avg_model_calls = round(total_calls / total, 2)
-    # Extra model calls beyond the baseline 1 call
-    avg_extra_model_calls = round(sum(max(0, r.get("model_calls", 0) - 1) for r in records) / total, 2)
+    total_calls = sum(r.get("model_calls", 0) for r in valid_records)
+    avg_model_calls = round(total_calls / total_valid, 2)
 
-    total_lat = sum(r.get("latency", 0.0) for r in records)
-    avg_latency = round(total_lat / total, 2)
+    total_extra_calls = sum(max(0, r.get("model_calls", 0) - 1) for r in valid_records)
+    avg_extra_model_calls = round(total_extra_calls / total_valid, 2)
 
-    escalated_count = sum(1 for r in records if r.get("escalated", False))
-    escalation_rate = round(escalated_count / total, 3)
+    total_lat = sum(r.get("latency", 0.0) for r in valid_records)
+    avg_latency = round(total_lat / total_valid, 2)
+
+    escalated_count = sum(1 for r in valid_records if r.get("escalated", False))
+    escalation_rate = round(escalated_count / total_valid, 3)
 
     return {
         "total_questions": total,
+        "valid_questions": total_valid,
+        "errors": errors_count,
         "citation_valid_rate": citation_valid_rate,
         "ungrounded_answer_rate": ungrounded_answer_rate,
         "wrong_answer_rate_on_traps": wrong_answer_rate_on_traps,
@@ -165,106 +176,124 @@ def eval_single_question_raw(
     q_id = item["id"]
     lang = item["lang"]
     answerable = item["answerable"]
-
-    candidates = candidate_languages(question)
-    effective_min_score = -999.0 if no_precheck else min_bm25_score
-
     start_t = time.perf_counter()
-    retrieved, top_score, precheck_passed = retrieve_passages(
-        query=question,
-        passages=knowledge_pack,
-        top_k=3,
-        min_score=effective_min_score,
-        filter_language=True,
-    )
 
-    resolved_lang = candidates[0] if len(candidates) == 1 else (
-        retrieved[0].get("lang", candidates[0]) if retrieved else candidates[0]
-    )
+    try:
+        candidates = candidate_languages(question)
+        effective_min_score = -999.0 if no_precheck else min_bm25_score
 
-    retrieved_ids = [str(p.get("id", "")) for p in retrieved]
+        retrieved, top_score, precheck_passed = retrieve_passages(
+            query=question,
+            passages=knowledge_pack,
+            top_k=3,
+            min_score=effective_min_score,
+            filter_language=True,
+        )
 
-    # Pre-check refusal
-    if not precheck_passed or not retrieved:
+        resolved_lang = candidates[0] if len(candidates) == 1 else (
+            retrieved[0].get("lang", candidates[0]) if retrieved else candidates[0]
+        )
+
+        retrieved_ids = [str(p.get("id", "")) for p in retrieved]
+
+        # Pre-check refusal
+        if not precheck_passed or not retrieved:
+            elapsed = time.perf_counter() - start_t
+            safe_ans = get_safe_refusal(str(resolved_lang))
+            return {
+                "id": q_id,
+                "setup": "raw",
+                "lang": lang,
+                "answerable": answerable,
+                "outcome": "refused",
+                "answer": safe_ans,
+                "sources": [],
+                "retrieved_passage_ids": retrieved_ids,
+                "model_calls": 0,
+                "escalated": False,
+                "latency": round(elapsed, 2),
+                "is_grounded": True,
+            }
+
+        messages = build_messages(question, retrieved)
+        comp = provider_manager.call_model(tier="tier1", messages=messages)
         elapsed = time.perf_counter() - start_t
-        safe_ans = get_safe_refusal(str(resolved_lang))
+
+        parsed_json, parse_err = parse_model_json(comp.text)
+        if not parsed_json or parse_err:
+            return {
+                "id": q_id,
+                "setup": "raw",
+                "lang": lang,
+                "answerable": answerable,
+                "outcome": "failed",
+                "answer": comp.text,
+                "sources": [],
+                "retrieved_passage_ids": retrieved_ids,
+                "model_calls": 1,
+                "escalated": False,
+                "latency": round(elapsed, 2),
+                "is_grounded": False,
+            }
+
+        if parsed_json.get("refuse", False):
+            safe_ans = get_safe_refusal(str(resolved_lang))
+            return {
+                "id": q_id,
+                "setup": "raw",
+                "lang": lang,
+                "answerable": answerable,
+                "outcome": "refused",
+                "answer": safe_ans,
+                "sources": [],
+                "retrieved_passage_ids": retrieved_ids,
+                "model_calls": 1,
+                "escalated": False,
+                "latency": round(elapsed, 2),
+                "is_grounded": True,
+            }
+
+        raw_answer = str(parsed_json.get("answer", ""))
+        raw_sources = [str(s) for s in parsed_json.get("sources", [])]
+
+        # Audit ground truth using gate checks to evaluate raw baseline quality
+        gate_check = verify_grounding(
+            model_output=comp.text,
+            retrieved_passages=retrieved,
+            question=question,
+        )
+
         return {
             "id": q_id,
             "setup": "raw",
             "lang": lang,
             "answerable": answerable,
-            "outcome": "refused",
-            "answer": safe_ans,
-            "sources": [],
+            "outcome": "passed",
+            "answer": raw_answer,
+            "sources": raw_sources,
             "retrieved_passage_ids": retrieved_ids,
+            "model_calls": 1,
+            "escalated": False,
+            "latency": round(elapsed, 2),
+            "is_grounded": gate_check.passed,
+        }
+    except Exception as exc:
+        elapsed = time.perf_counter() - start_t
+        return {
+            "id": q_id,
+            "setup": "raw",
+            "lang": lang,
+            "answerable": answerable,
+            "outcome": "error",
+            "answer": f"Error: {exc}",
+            "sources": [],
+            "retrieved_passage_ids": [],
             "model_calls": 0,
             "escalated": False,
             "latency": round(elapsed, 2),
-            "is_grounded": True,
-        }
-
-    messages = build_messages(question, retrieved)
-    comp = provider_manager.call_model(tier="tier1", messages=messages)
-    elapsed = time.perf_counter() - start_t
-
-    parsed_json, parse_err = parse_model_json(comp.text)
-    if not parsed_json or parse_err:
-        return {
-            "id": q_id,
-            "setup": "raw",
-            "lang": lang,
-            "answerable": answerable,
-            "outcome": "failed",
-            "answer": comp.text,
-            "sources": [],
-            "retrieved_passage_ids": retrieved_ids,
-            "model_calls": 1,
-            "escalated": False,
-            "latency": round(elapsed, 2),
             "is_grounded": False,
+            "error_details": str(exc),
         }
-
-    if parsed_json.get("refuse", False):
-        safe_ans = get_safe_refusal(str(resolved_lang))
-        return {
-            "id": q_id,
-            "setup": "raw",
-            "lang": lang,
-            "answerable": answerable,
-            "outcome": "refused",
-            "answer": safe_ans,
-            "sources": [],
-            "retrieved_passage_ids": retrieved_ids,
-            "model_calls": 1,
-            "escalated": False,
-            "latency": round(elapsed, 2),
-            "is_grounded": True,
-        }
-
-    raw_answer = str(parsed_json.get("answer", ""))
-    raw_sources = [str(s) for s in parsed_json.get("sources", [])]
-
-    # Audit ground truth using gate checks to evaluate raw baseline quality
-    gate_check = verify_grounding(
-        model_output=comp.text,
-        retrieved_passages=retrieved,
-        question=question,
-    )
-
-    return {
-        "id": q_id,
-        "setup": "raw",
-        "lang": lang,
-        "answerable": answerable,
-        "outcome": "passed",
-        "answer": raw_answer,
-        "sources": raw_sources,
-        "retrieved_passage_ids": retrieved_ids,
-        "model_calls": 1,
-        "escalated": False,
-        "latency": round(elapsed, 2),
-        "is_grounded": gate_check.passed,
-    }
 
 
 def eval_single_question_llm_judge(
@@ -275,87 +304,106 @@ def eval_single_question_llm_judge(
     no_precheck: bool,
 ) -> dict[str, Any]:
     """Execute LLM-as-a-judge setup: Tier-1 answer evaluated by second Tier-1 judge call."""
-    raw_res = eval_single_question_raw(
-        item=item,
-        knowledge_pack=knowledge_pack,
-        provider_manager=provider_manager,
-        min_bm25_score=min_bm25_score,
-        no_precheck=no_precheck,
-    )
+    start_judge_total = time.perf_counter()
+    try:
+        raw_res = eval_single_question_raw(
+            item=item,
+            knowledge_pack=knowledge_pack,
+            provider_manager=provider_manager,
+            min_bm25_score=min_bm25_score,
+            no_precheck=no_precheck,
+        )
 
-    # If raw refused or failed initially, no judge call is required
-    if raw_res["outcome"] != "passed":
-        res = dict(raw_res)
-        res["setup"] = "llm_judge"
-        return res
+        # If raw errored, refused, or failed initially, propagate outcome
+        if raw_res["outcome"] != "passed":
+            res = dict(raw_res)
+            res["setup"] = "llm_judge"
+            return res
 
-    question = item["question"]
-    lang = item["lang"]
-    answer_text = raw_res["answer"]
-    retrieved_ids = set(raw_res["retrieved_passage_ids"])
-    cited_passages = [p for p in knowledge_pack if str(p.get("id")) in retrieved_ids]
-    context_str = format_context(cited_passages)
+        question = item["question"]
+        lang = item["lang"]
+        answer_text = raw_res["answer"]
+        retrieved_ids = set(raw_res["retrieved_passage_ids"])
+        cited_passages = [p for p in knowledge_pack if str(p.get("id")) in retrieved_ids]
+        context_str = format_context(cited_passages)
 
-    judge_prompt = (
-        f"Reference Context:\n{context_str}\n\n"
-        f"Question:\n{question}\n\n"
-        f"Candidate Answer:\n{answer_text}\n\n"
-        f"Is the Candidate Answer completely grounded in the Reference Context without hallucinated facts or numbers?"
-    )
+        judge_prompt = (
+            f"Reference Context:\n{context_str}\n\n"
+            f"Question:\n{question}\n\n"
+            f"Candidate Answer:\n{answer_text}\n\n"
+            f"Is the Candidate Answer completely grounded in the Reference Context without hallucinated facts or numbers?"
+        )
 
-    judge_messages = [
-        {"role": "system", "content": JUDGE_SYSTEM_PROMPT},
-        {"role": "user", "content": judge_prompt},
-    ]
+        judge_messages = [
+            {"role": "system", "content": JUDGE_SYSTEM_PROMPT},
+            {"role": "user", "content": judge_prompt},
+        ]
 
-    start_judge = time.perf_counter()
-    judge_comp = provider_manager.call_model(tier="tier1", messages=judge_messages)
-    judge_elapsed = time.perf_counter() - start_judge
+        start_judge = time.perf_counter()
+        judge_comp = provider_manager.call_model(tier="tier1", messages=judge_messages)
+        judge_elapsed = time.perf_counter() - start_judge
 
-    judge_json, _ = parse_model_json(judge_comp.text)
-    is_judge_grounded = bool(judge_json.get("grounded", False)) if judge_json else False
+        judge_json, _ = parse_model_json(judge_comp.text)
+        is_judge_grounded = bool(judge_json.get("grounded", False)) if judge_json else False
 
-    total_latency = round(raw_res["latency"] + judge_elapsed, 2)
-    resolved_lang = candidate_languages(question)[0]
+        total_latency = round(raw_res["latency"] + judge_elapsed, 2)
+        resolved_lang = candidate_languages(question)[0]
 
-    if not is_judge_grounded:
-        safe_ans = get_safe_refusal(resolved_lang)
+        if not is_judge_grounded:
+            safe_ans = get_safe_refusal(resolved_lang)
+            return {
+                "id": item["id"],
+                "setup": "llm_judge",
+                "lang": lang,
+                "answerable": item["answerable"],
+                "outcome": "refused",
+                "answer": safe_ans,
+                "sources": [],
+                "retrieved_passage_ids": raw_res["retrieved_passage_ids"],
+                "model_calls": 2,
+                "escalated": False,
+                "latency": total_latency,
+                "is_grounded": True,
+            }
+
+        # Verify with deterministic checks for comparative reporting
+        gate_check = verify_grounding(
+            model_output={"answer": answer_text, "sources": raw_res["sources"], "refuse": False},
+            retrieved_passages=cited_passages,
+            question=question,
+        )
+
         return {
             "id": item["id"],
             "setup": "llm_judge",
             "lang": lang,
             "answerable": item["answerable"],
-            "outcome": "refused",
-            "answer": safe_ans,
-            "sources": [],
+            "outcome": "passed",
+            "answer": answer_text,
+            "sources": raw_res["sources"],
             "retrieved_passage_ids": raw_res["retrieved_passage_ids"],
             "model_calls": 2,
             "escalated": False,
             "latency": total_latency,
-            "is_grounded": True,
+            "is_grounded": gate_check.passed,
         }
-
-    # Verify with deterministic checks for comparative reporting
-    gate_check = verify_grounding(
-        model_output={"answer": answer_text, "sources": raw_res["sources"], "refuse": False},
-        retrieved_passages=cited_passages,
-        question=question,
-    )
-
-    return {
-        "id": item["id"],
-        "setup": "llm_judge",
-        "lang": lang,
-        "answerable": item["answerable"],
-        "outcome": "passed",
-        "answer": answer_text,
-        "sources": raw_res["sources"],
-        "retrieved_passage_ids": raw_res["retrieved_passage_ids"],
-        "model_calls": 2,
-        "escalated": False,
-        "latency": total_latency,
-        "is_grounded": gate_check.passed,
-    }
+    except Exception as exc:
+        elapsed = time.perf_counter() - start_judge_total
+        return {
+            "id": item["id"],
+            "setup": "llm_judge",
+            "lang": item["lang"],
+            "answerable": item["answerable"],
+            "outcome": "error",
+            "answer": f"Error: {exc}",
+            "sources": [],
+            "retrieved_passage_ids": [],
+            "model_calls": 0,
+            "escalated": False,
+            "latency": round(elapsed, 2),
+            "is_grounded": False,
+            "error_details": str(exc),
+        }
 
 
 def eval_single_question_gate(
@@ -365,32 +413,67 @@ def eval_single_question_gate(
 ) -> dict[str, Any]:
     """Execute gate setup using standard GroundingHarness pipeline."""
     start_t = time.perf_counter()
-    res = harness.ask(
-        question=item["question"],
-        knowledge_pack=knowledge_pack,
-    )
-    elapsed = time.perf_counter() - start_t
+    try:
+        res = harness.ask(
+            question=item["question"],
+            knowledge_pack=knowledge_pack,
+        )
+        elapsed = time.perf_counter() - start_t
 
-    trace = res.get("trace", {})
-    retrieval_meta = trace.get("retrieval", {})
-    retrieved_ids = retrieval_meta.get("retrieved_passage_ids", [])
+        trace = res.get("trace", {})
+        retrieval_meta = trace.get("retrieval", {})
+        retrieved_ids = retrieval_meta.get("retrieved_passage_ids", [])
 
-    is_grounded = (res["outcome"] == "passed")
+        if trace.get("provider_error"):
+            return {
+                "id": item["id"],
+                "setup": "gate",
+                "lang": item["lang"],
+                "answerable": item["answerable"],
+                "outcome": "error",
+                "answer": f"Error: {trace.get('provider_error')}",
+                "sources": [],
+                "retrieved_passage_ids": retrieved_ids,
+                "model_calls": res.get("model_calls", 0),
+                "escalated": res.get("escalated", False),
+                "latency": round(elapsed, 2),
+                "is_grounded": False,
+                "error_details": trace.get("provider_error"),
+            }
 
-    return {
-        "id": item["id"],
-        "setup": "gate",
-        "lang": item["lang"],
-        "answerable": item["answerable"],
-        "outcome": res["outcome"],
-        "answer": res["answer"],
-        "sources": res["sources"],
-        "retrieved_passage_ids": retrieved_ids,
-        "model_calls": res["model_calls"],
-        "escalated": res["escalated"],
-        "latency": round(elapsed, 2),
-        "is_grounded": is_grounded,
-    }
+        is_grounded = (res["outcome"] == "passed")
+
+        return {
+            "id": item["id"],
+            "setup": "gate",
+            "lang": item["lang"],
+            "answerable": item["answerable"],
+            "outcome": res["outcome"],
+            "answer": res["answer"],
+            "sources": res["sources"],
+            "retrieved_passage_ids": retrieved_ids,
+            "model_calls": res["model_calls"],
+            "escalated": res["escalated"],
+            "latency": round(elapsed, 2),
+            "is_grounded": is_grounded,
+        }
+    except Exception as exc:
+        elapsed = time.perf_counter() - start_t
+        return {
+            "id": item["id"],
+            "setup": "gate",
+            "lang": item["lang"],
+            "answerable": item["answerable"],
+            "outcome": "error",
+            "answer": f"Error: {exc}",
+            "sources": [],
+            "retrieved_passage_ids": [],
+            "model_calls": 0,
+            "escalated": False,
+            "latency": round(elapsed, 2),
+            "is_grounded": False,
+            "error_details": str(exc),
+        }
 
 
 def run_benchmark(
@@ -414,29 +497,46 @@ def run_benchmark(
 
     for setup_name in setups:
         def worker(q_item: dict[str, Any]) -> dict[str, Any]:
-            if setup_name == "raw":
-                return eval_single_question_raw(
-                    item=q_item,
-                    knowledge_pack=knowledge_pack,
-                    provider_manager=provider_manager,
-                    min_bm25_score=min_bm25_score,
-                    no_precheck=no_precheck,
-                )
-            elif setup_name == "llm_judge":
-                return eval_single_question_llm_judge(
-                    item=q_item,
-                    knowledge_pack=knowledge_pack,
-                    provider_manager=provider_manager,
-                    min_bm25_score=min_bm25_score,
-                    no_precheck=no_precheck,
-                )
-            elif setup_name == "gate":
-                return eval_single_question_gate(
-                    item=q_item,
-                    knowledge_pack=knowledge_pack,
-                    harness=harness,
-                )
-            raise ValueError(f"Unknown setup: {setup_name}")
+            try:
+                if setup_name == "raw":
+                    return eval_single_question_raw(
+                        item=q_item,
+                        knowledge_pack=knowledge_pack,
+                        provider_manager=provider_manager,
+                        min_bm25_score=min_bm25_score,
+                        no_precheck=no_precheck,
+                    )
+                elif setup_name == "llm_judge":
+                    return eval_single_question_llm_judge(
+                        item=q_item,
+                        knowledge_pack=knowledge_pack,
+                        provider_manager=provider_manager,
+                        min_bm25_score=min_bm25_score,
+                        no_precheck=no_precheck,
+                    )
+                elif setup_name == "gate":
+                    return eval_single_question_gate(
+                        item=q_item,
+                        knowledge_pack=knowledge_pack,
+                        harness=harness,
+                    )
+                raise ValueError(f"Unknown setup: {setup_name}")
+            except Exception as exc:
+                return {
+                    "id": q_item.get("id", "unknown"),
+                    "setup": setup_name,
+                    "lang": q_item.get("lang", "en"),
+                    "answerable": q_item.get("answerable", True),
+                    "outcome": "error",
+                    "answer": f"Error: {exc}",
+                    "sources": [],
+                    "retrieved_passage_ids": [],
+                    "model_calls": 0,
+                    "escalated": False,
+                    "latency": 0.0,
+                    "is_grounded": False,
+                    "error_details": str(exc),
+                }
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, workers)) as executor:
             records = list(executor.map(worker, questions))
@@ -476,6 +576,8 @@ def write_results_markdown(
 ) -> None:
     """Generate results.md document with clear scientific caveats and metric comparisons."""
     summary = results["summary"]
+    total_errors = sum(data["overall"].get("errors", 0) for data in summary.values())
+
     lines: list[str] = [
         "# groundgate Multilingual Evaluation Benchmark Results",
         "",
@@ -487,17 +589,26 @@ def write_results_markdown(
         "   setups are illustrative and anecdotal; they do not represent statistical significance.",
         "3. **Placeholder Knowledge Pack:** The knowledge pack consists of synthetic, fictional agricultural",
         "   schemes and clearly fake amounts to prevent real-world misguidance during hackathon development.",
+    ]
+
+    if total_errors > 0:
+        lines.extend([
+            f"4. **Execution Errors:** A total of {total_errors} call(s) encountered upstream provider errors.",
+            "   Failed questions received outcome `error` and were excluded from metric rate denominators.",
+        ])
+
+    lines.extend([
         "",
         "## Setup Performance Comparison",
         "",
-        "| Setup | Questions | Citation Valid | Ungrounded Answers | Trap Wrong Answer | Trap Refusal | Answerable Refusal | Avg Calls | Avg Extra Calls | Avg Latency | Escalation Rate |",
-        "| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |",
-    ]
+        "| Setup | Questions | Errors | Citation Valid | Ungrounded Answers | Trap Wrong Answer | Trap Refusal | Answerable Refusal | Avg Calls | Avg Extra Calls | Avg Latency | Escalation Rate |",
+        "| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |",
+    ])
 
     for setup_name, data in summary.items():
         o = data["overall"]
         lines.append(
-            f"| {setup_name} | {o['total_questions']} | {o['citation_valid_rate']:.1%} | "
+            f"| {setup_name} | {o['total_questions']} | {o.get('errors', 0)} | {o['citation_valid_rate']:.1%} | "
             f"{o['ungrounded_answer_rate']:.1%} | {o['wrong_answer_rate_on_traps']:.1%} | "
             f"{o['correct_refusal_rate_on_traps']:.1%} | {o['refusal_rate_on_answerable']:.1%} | "
             f"{o['avg_model_calls']} | {o['avg_extra_model_calls']} | {o['avg_latency']}s | "
@@ -512,11 +623,11 @@ def write_results_markdown(
 
     for setup_name, data in summary.items():
         lines.append(f"### Setup: {setup_name}")
-        lines.append("| Language | Questions | Citation Valid | Ungrounded Answers | Trap Refusal | Answerable Refusal | Avg Calls | Avg Latency |")
-        lines.append("| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |")
+        lines.append("| Language | Questions | Errors | Citation Valid | Ungrounded Answers | Trap Refusal | Answerable Refusal | Avg Calls | Avg Latency |")
+        lines.append("| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |")
         for lang_code, m in data["by_language"].items():
             lines.append(
-                f"| {lang_code.upper()} | {m['total_questions']} | {m['citation_valid_rate']:.1%} | "
+                f"| {lang_code.upper()} | {m['total_questions']} | {m.get('errors', 0)} | {m['citation_valid_rate']:.1%} | "
                 f"{m['ungrounded_answer_rate']:.1%} | {m['correct_refusal_rate_on_traps']:.1%} | "
                 f"{m['refusal_rate_on_answerable']:.1%} | {m['avg_model_calls']} | {m['avg_latency']}s |"
             )
@@ -545,9 +656,15 @@ def write_results_markdown(
 def print_summary_table(results: dict[str, Any]) -> None:
     """Print ASCII summary table to console without Unicode box characters."""
     summary = results["summary"]
-    print("\n" + "=" * 105)
-    print(f"{'Setup':<12} {'Total':<6} {'CitValid':<10} {'Ungrounded':<12} {'TrapWrong':<11} {'TrapRefuse':<12} {'AnsRefuse':<11} {'Calls':<7} {'Extra':<7} {'Latency':<8}")
-    print("-" * 105)
+    total_errors = sum(data["overall"].get("errors", 0) for data in summary.values())
+
+    if total_errors > 0:
+        print("\n[WARNING] Benchmark completed with errors. Failed queries received outcome 'error' and are excluded from rate denominators.")
+        print(f"Total upstream errors across setups: {total_errors}")
+
+    print("\n" + "=" * 115)
+    print(f"{'Setup':<12} {'Total':<6} {'Errors':<7} {'CitValid':<10} {'Ungrounded':<12} {'TrapWrong':<11} {'TrapRefuse':<12} {'AnsRefuse':<11} {'Calls':<7} {'Extra':<7} {'Latency':<8}")
+    print("-" * 115)
     for s_name, data in summary.items():
         o = data["overall"]
         cit_val = f"{o['citation_valid_rate']:.1%}"
@@ -556,13 +673,14 @@ def print_summary_table(results: dict[str, Any]) -> None:
         trap_ref = f"{o['correct_refusal_rate_on_traps']:.1%}"
         ans_ref = f"{o['refusal_rate_on_answerable']:.1%}"
         lat_str = f"{o['avg_latency']}s"
+        err_str = str(o.get("errors", 0))
         print(
-            f"{s_name:<12} {o['total_questions']:<6} {cit_val:<10} "
+            f"{s_name:<12} {o['total_questions']:<6} {err_str:<7} {cit_val:<10} "
             f"{ungrounded:<12} {trap_wrong:<11} "
             f"{trap_ref:<12} {ans_ref:<11} "
             f"{o['avg_model_calls']:<7} {o['avg_extra_model_calls']:<7} {lat_str:<8}"
         )
-    print("=" * 105)
+    print("=" * 115)
 
 
 def main() -> None:
@@ -666,6 +784,12 @@ def main() -> None:
         output_path=args.output_md,
         sweep_results=sweep_results,
     )
+
+    total_run_errors = sum(
+        data["overall"].get("errors", 0) for data in results["summary"].values()
+    )
+    if total_run_errors > 0:
+        print(f"\n[WARNING] Evaluation encountered {total_run_errors} error(s). Results written successfully with error metrics.")
 
     print(f"\nWrote results JSON to: {args.output_json}")
     print(f"Wrote results Markdown to: {args.output_md}")

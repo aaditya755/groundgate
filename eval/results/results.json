@@ -1,0 +1,179 @@
+{
+  "metadata": {
+    "timestamp": "2026-10-04 07:00:48 UTC",
+    "questions_count": 5,
+    "passages_count": 27,
+    "setups": [
+      "raw"
+    ],
+    "min_bm25_score": 1.5,
+    "overlap_threshold": 0.6,
+    "no_precheck": false
+  },
+  "summary": {
+    "raw": {
+      "overall": {
+        "total_questions": 5,
+        "valid_questions": 5,
+        "errors": 0,
+        "citation_valid_rate": 1.0,
+        "ungrounded_answer_rate": 0.2,
+        "wrong_answer_rate_on_traps": 0.0,
+        "correct_refusal_rate_on_traps": 0.0,
+        "refusal_rate_on_answerable": 0.0,
+        "avg_model_calls": 1.0,
+        "avg_extra_model_calls": 0.0,
+        "avg_latency": 0.02,
+        "escalation_rate": 0.0
+      },
+      "by_language": {
+        "en": {
+          "total_questions": 5,
+          "valid_questions": 5,
+          "errors": 0,
+          "citation_valid_rate": 1.0,
+          "ungrounded_answer_rate": 0.2,
+          "wrong_answer_rate_on_traps": 0.0,
+          "correct_refusal_rate_on_traps": 0.0,
+          "refusal_rate_on_answerable": 0.0,
+          "avg_model_calls": 1.0,
+          "avg_extra_model_calls": 0.0,
+          "avg_latency": 0.02,
+          "escalation_rate": 0.0
+        },
+        "hi": {
+          "total_questions": 0,
+          "valid_questions": 0,
+          "errors": 0,
+          "citation_valid_rate": 0.0,
+          "ungrounded_answer_rate": 0.0,
+          "wrong_answer_rate_on_traps": 0.0,
+          "correct_refusal_rate_on_traps": 0.0,
+          "refusal_rate_on_answerable": 0.0,
+          "avg_model_calls": 0.0,
+          "avg_extra_model_calls": 0.0,
+          "avg_latency": 0.0,
+          "escalation_rate": 0.0
+        },
+        "mr": {
+          "total_questions": 0,
+          "valid_questions": 0,
+          "errors": 0,
+          "citation_valid_rate": 0.0,
+          "ungrounded_answer_rate": 0.0,
+          "wrong_answer_rate_on_traps": 0.0,
+          "correct_refusal_rate_on_traps": 0.0,
+          "refusal_rate_on_answerable": 0.0,
+          "avg_model_calls": 0.0,
+          "avg_extra_model_calls": 0.0,
+          "avg_latency": 0.0,
+          "escalation_rate": 0.0
+        }
+      }
+    }
+  },
+  "details": {
+    "raw": [
+      {
+        "id": "Q_EN_01",
+        "setup": "raw",
+        "lang": "en",
+        "answerable": true,
+        "outcome": "passed",
+        "answer": "7500 rupees",
+        "sources": [
+          "T01_EN"
+        ],
+        "retrieved_passage_ids": [
+          "T01_EN",
+          "T07_EN",
+          "T03_EN"
+        ],
+        "model_calls": 1,
+        "escalated": false,
+        "latency": 0.02,
+        "is_grounded": true
+      },
+      {
+        "id": "Q_EN_02",
+        "setup": "raw",
+        "lang": "en",
+        "answerable": true,
+        "outcome": "passed",
+        "answer": "85% capital subsidy is provided for installing 5 horsepower agricultural irrigation pumps under the Mock Solar Pump Subsidy Scheme.",
+        "sources": [
+          "T02_EN"
+        ],
+        "retrieved_passage_ids": [
+          "T02_EN",
+          "T06_EN",
+          "T05_EN"
+        ],
+        "model_calls": 1,
+        "escalated": false,
+        "latency": 0.02,
+        "is_grounded": true
+      },
+      {
+        "id": "Q_EN_03",
+        "setup": "raw",
+        "lang": "en",
+        "answerable": true,
+        "outcome": "passed",
+        "answer": "The maximum financial compensation is capped at 40000 rupees per insured milch cow.",
+        "sources": [
+          "T03_EN"
+        ],
+        "retrieved_passage_ids": [
+          "T03_EN",
+          "T04_EN",
+          "T08_EN"
+        ],
+        "model_calls": 1,
+        "escalated": false,
+        "latency": 0.02,
+        "is_grounded": true
+      },
+      {
+        "id": "Q_EN_04",
+        "setup": "raw",
+        "lang": "en",
+        "answerable": true,
+        "outcome": "passed",
+        "answer": "1200 rupees per metric ton",
+        "sources": [
+          "T04_EN"
+        ],
+        "retrieved_passage_ids": [
+          "T04_EN",
+          "T03_EN",
+          "T07_EN"
+        ],
+        "model_calls": 1,
+        "escalated": false,
+        "latency": 0.02,
+        "is_grounded": true
+      },
+      {
+        "id": "Q_EN_05",
+        "setup": "raw",
+        "lang": "en",
+        "answerable": true,
+        "outcome": "passed",
+        "answer": "3 years",
+        "sources": [
+          "T05_EN"
+        ],
+        "retrieved_passage_ids": [
+          "T05_EN",
+          "T02_EN",
+          "T03_EN"
+        ],
+        "model_calls": 1,
+        "escalated": false,
+        "latency": 0.02,
+        "is_grounded": false
+      }
+    ]
+  }
+}

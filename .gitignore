@@ -28,3 +28,11 @@ smoke_report.txt
 # Node.js artifacts
 node_modules/
 .DS_Store
+
+eval_run.log
+
+.venv/
+test_report.txt
+smoke_report.txt
+eval_run.log
+!eval/results/results.json

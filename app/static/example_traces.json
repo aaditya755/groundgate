@@ -1,0 +1,275 @@
+[
+  {
+    "id": "example_q_en_01",
+    "title": "English question: answered and verified",
+    "scenario": "Answered by tier-1 and verified by the gate (1 model call).",
+    "question": "How much annual financial grant can smallholder farmers receive under the crop welfare program?",
+    "lang": "en",
+    "answer": "Smallholder farmers can receive an annual assistance of 7500 rupees under the Fictional Crop Welfare Grant.",
+    "sources": [
+      "T01_EN"
+    ],
+    "outcome": "passed",
+    "escalated": false,
+    "model_calls": 1,
+    "trace": {
+      "question": "How much annual financial grant can smallholder farmers receive under the crop welfare program?",
+      "detected_language": "en",
+      "retrieval": {
+        "passages_count": 3,
+        "top_bm25_score": 60.234,
+        "precheck_passed": true,
+        "retrieved_passage_ids": [
+          "T01_EN",
+          "T07_EN",
+          "T03_EN"
+        ]
+      },
+      "attempts": [
+        {
+          "tier": "tier1",
+          "provider": "nvidia",
+          "model": "nvidia/nemotron-3-ultra-550b-a55b",
+          "latency": 6.46,
+          "finish_reason": "stop",
+          "raw_output": "{\n  \"answer\": \"Smallholder farmers can receive an annual assistance of 7500 rupees under the Fictional Crop Welfare Grant.\",\n  \"sources\": [\"T01_EN\"],\n  \"refuse\": false\n}",
+          "gate_passed": true,
+          "gate_outcome": "passed",
+          "gate_checks": {
+            "json_valid": true,
+            "refusal_ok": true,
+            "sources_real": true,
+            "numbers_grounded": true,
+            "token_overlap": true,
+            "language_match": true
+          },
+          "gate_failures": [],
+          "gate_details": {
+            "answer": "Smallholder farmers can receive an annual assistance of 7500 rupees under the Fictional Crop Welfare Grant.",
+            "sources": [
+              "T01_EN"
+            ],
+            "refuse": false,
+            "ungrounded_numbers": [],
+            "token_overlap_ratio": 1.0,
+            "overlap_threshold": 0.6,
+            "question_devanagari_ratio": 0.0,
+            "answer_devanagari_ratio": 0.0
+          }
+        }
+      ],
+      "escalated": false,
+      "total_model_calls": 1,
+      "final_outcome": "passed",
+      "final_answer": "Smallholder farmers can receive an annual assistance of 7500 rupees under the Fictional Crop Welfare Grant.",
+      "final_sources": [
+        "T01_EN"
+      ],
+      "provider_error": null
+    },
+    "is_cached_example": true,
+    "notice": "Pre-recorded example from a real run, not a live answer.",
+    "recorded_at": "2026-10-04 06:31:22 UTC"
+  },
+  {
+    "id": "example_q_hi_01",
+    "title": "Hindi question: answered and verified",
+    "scenario": "Answered by tier-1 and verified by the gate (1 model call).",
+    "question": "फसल कल्याण कार्यक्रम के तहत किसानों को साल भर में कुल कितनी मदद मिलती है?",
+    "lang": "hi",
+    "answer": "काल्पनिक फसल कल्याण अनुदान के अंतर्गत पंजीकृत लघु किसानों को प्रति वर्ष ७५०० रुपये की सहायता प्रदान की जाती है।",
+    "sources": [
+      "T01_HI"
+    ],
+    "outcome": "passed",
+    "escalated": false,
+    "model_calls": 1,
+    "trace": {
+      "question": "फसल कल्याण कार्यक्रम के तहत किसानों को साल भर में कुल कितनी मदद मिलती है?",
+      "detected_language": "hi",
+      "retrieval": {
+        "passages_count": 3,
+        "top_bm25_score": 27.341,
+        "precheck_passed": true,
+        "retrieved_passage_ids": [
+          "T01_HI",
+          "T07_HI",
+          "T04_HI"
+        ]
+      },
+      "attempts": [
+        {
+          "tier": "tier1",
+          "provider": "nvidia",
+          "model": "nvidia/nemotron-3-ultra-550b-a55b",
+          "latency": 6.41,
+          "finish_reason": "stop",
+          "raw_output": "{\n  \"answer\": \"काल्पनिक फसल कल्याण अनुदान के अंतर्गत पंजीकृत लघु किसानों को प्रति वर्ष ७५०० रुपये की सहायता प्रदान की जाती है।\",\n  \"sources\": [\"T01_HI\"],\n  \"refuse\": false\n}",
+          "gate_passed": true,
+          "gate_outcome": "passed",
+          "gate_checks": {
+            "json_valid": true,
+            "refusal_ok": true,
+            "sources_real": true,
+            "numbers_grounded": true,
+            "token_overlap": true,
+            "language_match": true
+          },
+          "gate_failures": [],
+          "gate_details": {
+            "answer": "काल्पनिक फसल कल्याण अनुदान के अंतर्गत पंजीकृत लघु किसानों को प्रति वर्ष ७५०० रुपये की सहायता प्रदान की जाती है।",
+            "sources": [
+              "T01_HI"
+            ],
+            "refuse": false,
+            "ungrounded_numbers": [],
+            "token_overlap_ratio": 1.0,
+            "overlap_threshold": 0.6,
+            "question_devanagari_ratio": 1.0,
+            "answer_devanagari_ratio": 1.0
+          }
+        }
+      ],
+      "escalated": false,
+      "total_model_calls": 1,
+      "final_outcome": "passed",
+      "final_answer": "काल्पनिक फसल कल्याण अनुदान के अंतर्गत पंजीकृत लघु किसानों को प्रति वर्ष ७५०० रुपये की सहायता प्रदान की जाती है।",
+      "final_sources": [
+        "T01_HI"
+      ],
+      "provider_error": null
+    },
+    "is_cached_example": true,
+    "notice": "Pre-recorded example from a real run, not a live answer.",
+    "recorded_at": "2026-10-04 06:31:29 UTC"
+  },
+  {
+    "id": "example_q_mr_10",
+    "title": "Marathi question: refused after the model declined",
+    "scenario": "The model declined; the canonical safe refusal was returned.",
+    "question": "पीक कल्याण अनुदानाचा अर्ज भरण्यासाठी शेती सातबारा उताऱ्यावर कोणती नोंद असावी लागते?",
+    "lang": "mr",
+    "answer": "उपलब्ध माहितीच्या आधारे मी या प्रश्नाचे उत्तर देऊ शकत नाही.",
+    "sources": [],
+    "outcome": "refused",
+    "escalated": false,
+    "model_calls": 1,
+    "trace": {
+      "question": "पीक कल्याण अनुदानाचा अर्ज भरण्यासाठी शेती सातबारा उताऱ्यावर कोणती नोंद असावी लागते?",
+      "detected_language": "mr",
+      "retrieval": {
+        "passages_count": 3,
+        "top_bm25_score": 47.468,
+        "precheck_passed": true,
+        "retrieved_passage_ids": [
+          "T01_MR",
+          "T01_HI",
+          "T08_MR"
+        ]
+      },
+      "attempts": [
+        {
+          "tier": "tier1",
+          "provider": "nvidia",
+          "model": "nvidia/nemotron-3-ultra-550b-a55b",
+          "latency": 7.79,
+          "finish_reason": "stop",
+          "raw_output": "{\n  \"answer\": \"I cannot answer this question based on the provided sources.\",\n  \"sources\": [],\n  \"refuse\": true\n}",
+          "gate_passed": true,
+          "gate_outcome": "refused",
+          "gate_checks": {
+            "json_valid": true,
+            "refusal_ok": true,
+            "sources_real": false,
+            "numbers_grounded": false,
+            "token_overlap": false,
+            "language_match": false
+          },
+          "gate_failures": [],
+          "gate_details": {
+            "answer": "I cannot answer this question based on the provided sources.",
+            "sources": [],
+            "refuse": true,
+            "question_devanagari_ratio": 1.0,
+            "answer_devanagari_ratio": 0.0,
+            "warnings": [
+              "Refusal script mismatch: Question was in Devanagari script (100.0%), but answer is in Latin script (0.0%)."
+            ]
+          }
+        }
+      ],
+      "escalated": false,
+      "total_model_calls": 1,
+      "final_outcome": "refused",
+      "final_answer": "उपलब्ध माहितीच्या आधारे मी या प्रश्नाचे उत्तर देऊ शकत नाही.",
+      "final_sources": [],
+      "provider_error": null
+    },
+    "is_cached_example": true,
+    "notice": "Pre-recorded example from a real run, not a live answer.",
+    "recorded_at": "2026-10-04 06:31:29 UTC"
+  },
+  {
+    "id": "example_q_en_08",
+    "title": "English question: refused after the model declined",
+    "scenario": "The model declined; the canonical safe refusal was returned.",
+    "question": "What is the computational speedup of Shor's quantum algorithm compared to classical factoring?",
+    "lang": "en",
+    "answer": "I cannot answer this question based on the provided sources.",
+    "sources": [],
+    "outcome": "refused",
+    "escalated": false,
+    "model_calls": 1,
+    "trace": {
+      "question": "What is the computational speedup of Shor's quantum algorithm compared to classical factoring?",
+      "detected_language": "en",
+      "retrieval": {
+        "passages_count": 3,
+        "top_bm25_score": 14.608,
+        "precheck_passed": true,
+        "retrieved_passage_ids": [
+          "T01_EN",
+          "T08_EN",
+          "T09_EN"
+        ]
+      },
+      "attempts": [
+        {
+          "tier": "tier1",
+          "provider": "nvidia",
+          "model": "nvidia/nemotron-3-ultra-550b-a55b",
+          "latency": 4.44,
+          "finish_reason": "stop",
+          "raw_output": "{\n  \"answer\": \"I cannot answer this question based on the provided sources.\",\n  \"sources\": [],\n  \"refuse\": true\n}",
+          "gate_passed": true,
+          "gate_outcome": "refused",
+          "gate_checks": {
+            "json_valid": true,
+            "refusal_ok": true,
+            "sources_real": false,
+            "numbers_grounded": false,
+            "token_overlap": false,
+            "language_match": true
+          },
+          "gate_failures": [],
+          "gate_details": {
+            "answer": "I cannot answer this question based on the provided sources.",
+            "sources": [],
+            "refuse": true,
+            "question_devanagari_ratio": 0.0,
+            "answer_devanagari_ratio": 0.0
+          }
+        }
+      ],
+      "escalated": false,
+      "total_model_calls": 1,
+      "final_outcome": "refused",
+      "final_answer": "I cannot answer this question based on the provided sources.",
+      "final_sources": [],
+      "provider_error": null
+    },
+    "is_cached_example": true,
+    "notice": "Pre-recorded example from a real run, not a live answer.",
+    "recorded_at": "2026-10-04 06:31:33 UTC"
+  }
+]

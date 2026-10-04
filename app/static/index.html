@@ -1,0 +1,2078 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>groundgate | Multilingual Grounding Gate &amp; Model Cascade</title>
+  <meta name="description" content="Devanagari-aware deterministic grounding harness and single-escalation model cascade for Hindi, Marathi, and English." />
+  <style>
+    /* ==========================================================================
+       WARM CALM ASSISTANT THEME (Chat-style layout, 720px centered column)
+       No gradients, no neon, no blue/cyan/purple, no CDN/web fonts. Works offline.
+       ========================================================================== */
+    :root {
+      --bg: #FAF9F5;
+      --surface: #FFFFFF;
+      --surface-subtle: #F3F1EA;
+      --text: #141413;
+      --muted: #6B6A64;
+      --border: #E8E6DC;
+      --border-hover: #D5D2C5;
+      --accent: #D97757;
+      --accent-hover: #C6613F;
+      --verified-green: #3F7D5A;
+      --verified-green-bg: #EAF3EE;
+      --refusal-terracotta: #C6613F;
+      --refusal-terracotta-bg: #FDF0EB;
+
+      --serif: ui-serif, "Iowan Old Style", "Palatino Linotype", Georgia, "Nirmala UI", "Noto Sans Devanagari", "Mangal", serif;
+      --sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", "Nirmala UI", "Noto Sans Devanagari", "Mangal", sans-serif;
+      --mono: ui-monospace, "SF Mono", "Cascadia Code", "Roboto Mono", "Courier New", monospace;
+
+      --shadow-sm: 0 2px 8px rgba(20, 20, 19, 0.04);
+      --shadow-md: 0 4px 20px rgba(20, 20, 19, 0.06);
+      --shadow-lg: 0 8px 30px rgba(20, 20, 19, 0.08);
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 20px;
+    }
+
+    /* Dark theme via data-theme or prefers-color-scheme */
+    [data-theme="dark"] {
+      --bg: #262624;
+      --surface: #30302E;
+      --surface-subtle: #383835;
+      --text: #FAF9F5;
+      --muted: #A8A69E;
+      --border: #3E3D3A;
+      --border-hover: #52504B;
+      --verified-green-bg: #1B2B22;
+      --refusal-terracotta-bg: #38241D;
+      --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
+      --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.25);
+      --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.35);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #262624;
+        --surface: #30302E;
+        --surface-subtle: #383835;
+        --text: #FAF9F5;
+        --muted: #A8A69E;
+        --border: #3E3D3A;
+        --border-hover: #52504B;
+        --verified-green-bg: #1B2B22;
+        --refusal-terracotta-bg: #38241D;
+        --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
+        --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.25);
+        --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.35);
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      line-height: 1.5;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      transition: background-color 0.2s ease, color 0.2s ease;
+    }
+
+    :focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    /* Slim Header */
+    header {
+      background-color: var(--bg);
+      border-bottom: 1px solid var(--border);
+      padding: 0.85rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+      text-decoration: none;
+      color: var(--text);
+    }
+
+    .brand-mark {
+      color: var(--accent);
+      flex-shrink: 0;
+    }
+
+    .brand-title {
+      font-family: var(--serif);
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.015em;
+    }
+
+    .header-nav-wrap {
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+    }
+
+    nav {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    .tab-btn {
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: var(--muted);
+      padding: 0.5rem 0.75rem;
+      font-family: var(--sans);
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      min-height: 44px;
+      transition: color 0.15s ease, border-color 0.15s ease;
+    }
+
+    .tab-btn:hover {
+      color: var(--text);
+    }
+
+    .tab-btn.active {
+      color: var(--text);
+      border-bottom-color: var(--accent);
+      font-weight: 600;
+    }
+
+    /* Theme Toggle */
+    .theme-toggle-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      min-height: 44px;
+      min-width: 44px;
+      transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+    }
+
+    .theme-toggle-btn:hover {
+      color: var(--text);
+      border-color: var(--border-hover);
+      background-color: var(--surface);
+    }
+
+    /* Main Container (720px centered column) */
+    main {
+      flex: 1;
+      max-width: 720px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 2.5rem 1.25rem 5rem 1.25rem;
+    }
+
+    .tab-content { display: none; }
+    .tab-content.active {
+      display: block;
+      animation: fadeIn 0.25s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Greeting Section */
+    .greeting-wrap {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .greeting-title {
+      font-family: var(--serif);
+      font-size: 2.1rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.4rem;
+      color: var(--text);
+    }
+
+    .greeting-subtitle {
+      font-size: 0.95rem;
+      color: var(--muted);
+    }
+
+    /* Big Rounded Input Card */
+    .input-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1.15rem 1.25rem 0.85rem 1.25rem;
+      box-shadow: var(--shadow-md);
+      transition: border-color 0.18s ease, box-shadow 0.18s ease;
+      position: relative;
+    }
+
+    .input-card:focus-within {
+      border-color: var(--accent);
+      box-shadow: var(--shadow-lg);
+    }
+
+    textarea#questionInput {
+      width: 100%;
+      min-height: 64px;
+      max-height: 200px;
+      background: transparent;
+      border: none;
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 1.05rem;
+      line-height: 1.5;
+      padding: 0;
+      resize: none;
+    }
+
+    textarea#questionInput:focus {
+      outline: none;
+    }
+
+    textarea#questionInput::placeholder {
+      color: var(--muted);
+      opacity: 0.8;
+    }
+
+    .input-bottom-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 0.75rem;
+      padding-top: 0.5rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .char-count {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    /* Round Terracotta Send Button with Up Arrow */
+    .btn-send {
+      background-color: var(--accent);
+      color: #FFFFFF;
+      border: none;
+      width: 38px;
+      height: 38px;
+      min-width: 44px;
+      min-height: 44px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background-color 0.15s ease, transform 0.1s ease;
+      flex-shrink: 0;
+    }
+
+    .btn-send:hover:not(:disabled) {
+      background-color: var(--accent-hover);
+    }
+
+    .btn-send:active:not(:disabled) {
+      transform: scale(0.95);
+    }
+
+    .btn-send:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Three Pulsing Dots Spinner */
+    .btn-spinner-dots {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .btn-spinner-dots span {
+      width: 4px;
+      height: 4px;
+      background: #FFFFFF;
+      border-radius: 50%;
+      animation: pulseDot 1s infinite ease-in-out;
+    }
+
+    .btn-spinner-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .btn-spinner-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes pulseDot {
+      0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
+      40% { opacity: 1; transform: scale(1.1); }
+    }
+
+    /* Demo Safeguard Notice */
+    .demo-notice {
+      font-size: 0.78rem;
+      color: var(--muted);
+      text-align: center;
+      margin-top: 0.75rem;
+      line-height: 1.4;
+    }
+
+    /* Sample Questions & Example Selector */
+    .suggestions-wrap {
+      margin-top: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .suggestions-label {
+      font-size: 0.78rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 600;
+    }
+
+    .chip-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .chip {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 0.45rem 0.85rem;
+      font-size: 0.82rem;
+      color: var(--text);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      min-height: 44px;
+      transition: border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+    }
+
+    .chip:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .chip-lang {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--muted);
+    }
+
+    .example-select-wrap {
+      margin-top: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .example-select-label {
+      font-size: 0.82rem;
+      color: var(--muted);
+      flex-shrink: 0;
+    }
+
+    select#exampleSelector {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 0.45rem 0.75rem;
+      font-family: var(--sans);
+      font-size: 0.82rem;
+      min-height: 44px;
+      cursor: pointer;
+      flex: 1;
+    }
+
+    select#exampleSelector:focus {
+      outline: 2px solid var(--accent);
+    }
+
+    /* Loading Bubble */
+    .loading-bubble {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1.25rem 1.5rem;
+      margin-top: 2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .pulsing-dots {
+      display: inline-flex;
+      gap: 5px;
+    }
+
+    .pulsing-dots span {
+      width: 7px;
+      height: 7px;
+      background: var(--accent);
+      border-radius: 50%;
+      animation: pulseDot 1.2s infinite ease-in-out;
+    }
+
+    .pulsing-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .pulsing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+    .loading-text {
+      font-size: 0.88rem;
+      color: var(--muted);
+      font-family: var(--serif);
+      font-style: italic;
+    }
+
+    /* Empty State */
+    .empty-state {
+      margin-top: 3rem;
+      padding: 2.5rem 1.5rem;
+      text-align: center;
+      border: 1px dashed var(--border);
+      border-radius: var(--radius-lg);
+      color: var(--muted);
+    }
+
+    .empty-state-icon {
+      color: var(--muted);
+      margin-bottom: 0.75rem;
+    }
+
+    .empty-state-title {
+      font-family: var(--serif);
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 0.35rem;
+    }
+
+    .empty-state-desc {
+      font-size: 0.88rem;
+      max-width: 440px;
+      margin: 0 auto;
+      line-height: 1.5;
+    }
+
+    /* Message Card / Output */
+    .message-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1.75rem;
+      margin-top: 2rem;
+      box-shadow: var(--shadow-sm);
+      animation: fadeIn 0.25s ease;
+    }
+
+    .message-header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 1.1rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .message-assistant-id {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .avatar-icon-wrap {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--refusal-terracotta-bg);
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .assistant-name {
+      font-family: var(--serif);
+      font-size: 0.95rem;
+      font-weight: 700;
+    }
+
+    /* Verdict Pill */
+    .verdict-pill {
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      text-transform: capitalize;
+      letter-spacing: 0.02em;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .pill-verified, .badge-passed {
+      background: var(--verified-green-bg);
+      color: var(--verified-green);
+      border: 1px solid rgba(63, 125, 90, 0.3);
+    }
+
+    .pill-declined, .badge-refused, .badge-failed {
+      background: var(--refusal-terracotta-bg);
+      color: var(--refusal-terracotta);
+      border: 1px solid rgba(198, 97, 63, 0.3);
+    }
+
+    .cached-notice-pill {
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 0.5rem 0.85rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-bottom: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    /* Answer in Serif */
+    .answer-serif-text {
+      font-family: var(--serif);
+      font-size: 1.15rem;
+      line-height: 1.65;
+      color: var(--text);
+      margin-bottom: 1.25rem;
+    }
+
+    .meta-summary-strip {
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      color: var(--muted);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+      padding-bottom: 1.25rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* Disclosures & Collapsible Sections */
+    details.disclosure {
+      margin-top: 1.25rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      background: var(--surface);
+    }
+
+    summary.disclosure-header {
+      padding: 0.75rem 1rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      list-style: none;
+      user-select: none;
+      min-height: 44px;
+      transition: background 0.15s ease;
+    }
+
+    summary.disclosure-header::-webkit-details-marker { display: none; }
+
+    summary.disclosure-header:hover {
+      background-color: var(--surface-subtle);
+    }
+
+    .chevron-icon {
+      color: var(--muted);
+      transition: transform 0.2s ease;
+      flex-shrink: 0;
+    }
+
+    details[open] summary.disclosure-header .chevron-icon {
+      transform: rotate(180deg);
+    }
+
+    .disclosure-body {
+      padding: 1rem;
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+    }
+
+    /* Checks Table */
+    .checks-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+    }
+
+    .checks-table td {
+      padding: 0.55rem 0.4rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: baseline;
+    }
+
+    .checks-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .check-title {
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .check-obs {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    .check-status {
+      text-align: right;
+      font-family: var(--mono);
+      font-weight: 700;
+      font-size: 0.75rem;
+      white-space: nowrap;
+    }
+
+    .status-ok { color: var(--verified-green); }
+    .status-err { color: var(--refusal-terracotta); }
+
+    .check-row-pending {
+      opacity: 0.2;
+    }
+
+    .check-row-visible {
+      opacity: 1;
+      transition: opacity 0.2s ease;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .check-row-pending { opacity: 1 !important; }
+    }
+
+    /* Cited Passages Quote Cards */
+    .citations-section {
+      margin-top: 1.5rem;
+    }
+
+    .citations-heading {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.75rem;
+    }
+
+    .quote-cards-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .quote-card {
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 0.85rem 1rem;
+    }
+
+    .quote-source-label {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--muted);
+      margin-bottom: 0.35rem;
+    }
+
+    .quote-text {
+      font-family: var(--serif);
+      font-size: 0.95rem;
+      line-height: 1.5;
+      color: var(--text);
+      font-style: italic;
+    }
+
+    /* Audit Timeline */
+    .timeline {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+      border-left: 2px solid var(--border);
+      padding-left: 1.25rem;
+      margin-left: 0.5rem;
+    }
+
+    .step-node { position: relative; }
+
+    .step-node::before {
+      content: "";
+      position: absolute;
+      left: -1.6rem;
+      top: 0.3rem;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--border);
+    }
+
+    .step-node.node-ok::before { background: var(--verified-green); }
+    .step-node.node-err::before { background: var(--refusal-terracotta); }
+
+    .step-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      font-size: 0.88rem;
+      font-weight: 600;
+      margin-bottom: 0.2rem;
+    }
+
+    .step-meta {
+      font-family: var(--mono);
+      font-size: 0.74rem;
+      color: var(--muted);
+      margin-bottom: 0.4rem;
+    }
+
+    .checks-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 0.4rem;
+      margin-top: 0.4rem;
+    }
+
+    .grid-check-item {
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 0.3rem 0.5rem;
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .grid-check-item.ok { color: var(--verified-green); }
+    .grid-check-item.bad { color: var(--refusal-terracotta); }
+
+    .gate-failure-box {
+      margin-top: 0.5rem;
+      background: var(--refusal-terracotta-bg);
+      border: 1px solid var(--refusal-terracotta);
+      border-radius: var(--radius-sm);
+      padding: 0.5rem 0.75rem;
+      font-size: 0.75rem;
+      color: var(--refusal-terracotta);
+    }
+
+    /* ==========================================================================
+       TAB 2: RESULTS TAB
+       ========================================================================== */
+    .results-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .card-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1.75rem;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .panel-title {
+      font-family: var(--serif);
+      font-size: 1.35rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    .panel-subtitle {
+      font-size: 0.88rem;
+      color: var(--muted);
+      margin-bottom: 1.25rem;
+    }
+
+    /* Soft Bordered Caveats Note */
+    .caveats-box {
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 1.15rem 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .caveats-title {
+      font-size: 0.82rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text);
+      margin-bottom: 0.5rem;
+    }
+
+    .caveats-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    .caveats-list li strong { color: var(--text); }
+
+    .table-responsive {
+      overflow-x: auto;
+      margin: 1rem 0;
+    }
+
+    table.soft-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+      text-align: left;
+    }
+
+    table.soft-table th {
+      padding: 0.65rem 0.75rem;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.74rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+    }
+
+    table.soft-table td {
+      padding: 0.75rem;
+      border-bottom: 1px solid var(--border);
+      font-family: var(--mono);
+      font-size: 0.8rem;
+    }
+
+    .rate-slim-cell {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .rate-val {
+      width: 46px;
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    .rate-track-slim {
+      flex: 1;
+      height: 6px;
+      background: var(--border);
+      border-radius: 9999px;
+      overflow: hidden;
+      min-width: 44px;
+    }
+
+    .rate-bar-slim {
+      height: 100%;
+      border-radius: 9999px;
+    }
+
+    .rate-bar-slim.green { background: var(--verified-green); }
+    .rate-bar-slim.red { background: var(--refusal-terracotta); }
+    .rate-bar-slim.neutral { background: var(--accent); }
+
+    /* Visualizations */
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1.25rem;
+      margin: 1.5rem 0;
+    }
+
+    .chart-card {
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 1.15rem;
+    }
+
+    .chart-label {
+      font-size: 0.76rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+      margin-bottom: 0.85rem;
+    }
+
+    .bar-chart-container {
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+    }
+
+    .bar-row {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      font-size: 0.78rem;
+      font-family: var(--mono);
+    }
+
+    .bar-row-label {
+      width: 85px;
+      color: var(--muted);
+      flex-shrink: 0;
+    }
+
+    .bar-row-track {
+      flex: 1;
+      height: 8px;
+      background: var(--border);
+      border-radius: 9999px;
+      overflow: hidden;
+    }
+
+    .bar-row-fill {
+      height: 100%;
+      border-radius: 9999px;
+      transition: width 0.3s ease;
+    }
+
+    .bar-row-val {
+      width: 45px;
+      text-align: right;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+
+    /* ==========================================================================
+       TAB 3: ABOUT TAB
+       ========================================================================== */
+    .about-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .editorial-p {
+      font-size: 0.95rem;
+      line-height: 1.65;
+      color: var(--text);
+      margin-bottom: 0.85rem;
+    }
+
+    .diagram-panel {
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 1.5rem 1rem;
+      margin: 1.5rem 0;
+      overflow-x: auto;
+    }
+
+    .pipeline-svg {
+      display: block;
+      width: 100%;
+      max-width: 680px;
+      height: auto;
+      margin: 0 auto;
+      color: var(--text);
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 1.25rem 1.5rem;
+      font-size: 0.78rem;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: auto;
+    }
+
+    footer a { color: var(--accent); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+  <!-- Slim Header -->
+  <header>
+    <a href="#" class="brand">
+      <!-- Original terracotta gate/arch SVG mark -->
+      <svg class="brand-mark" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 21V7a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v14M4 11h16M12 3v18"/>
+      </svg>
+      <span class="brand-title">groundgate</span>
+    </a>
+
+    <div class="header-nav-wrap">
+      <nav>
+        <button class="tab-btn active" data-tab="live">Ask</button>
+        <button class="tab-btn" data-tab="results">Results</button>
+        <button class="tab-btn" data-tab="about">About</button>
+      </nav>
+
+      <!-- Theme Toggle Button -->
+      <button id="themeToggleBtn" type="button" class="theme-toggle-btn" aria-label="Toggle dark mode" onclick="toggleTheme()">
+        <svg id="themeIconSun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+          <circle cx="12" cy="12" r="5"></circle>
+          <line x1="12" y1="1" x2="12" y2="3"></line>
+          <line x1="12" y1="21" x2="12" y2="23"></line>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+          <line x1="1" y1="12" x2="3" y2="12"></line>
+          <line x1="21" y1="12" x2="23" y2="12"></line>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+        </svg>
+        <svg id="themeIconMoon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Centered Content Column -->
+  <main>
+
+    <!-- ====================================================================
+         TAB 1: ASK (LIVE GATE)
+         ==================================================================== -->
+    <div id="tab-live" class="tab-content active">
+
+      <!-- Greeting -->
+      <div class="greeting-wrap">
+        <h1 class="greeting-title">What would you like to verify?</h1>
+        <p class="greeting-subtitle">Devanagari-aware grounded answers for English, Hindi, and Marathi.</p>
+      </div>
+
+      <!-- Big Rounded Input Card -->
+      <div class="input-card">
+        <textarea id="questionInput" placeholder="Ask a factual question about agricultural schemes..." rows="2"></textarea>
+        
+        <div class="input-bottom-bar">
+          <span id="charCount" class="char-count">0 / 500 chars</span>
+          
+          <!-- Round Terracotta Send Button with Up Arrow -->
+          <button id="askBtn" class="btn-send" onclick="submitQuery()" aria-label="Submit question">
+            <span id="btnSpinner" class="btn-spinner-dots" style="display:none;">
+              <span></span><span></span><span></span>
+            </span>
+            <span id="btnText">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="19" x2="12" y2="5"></line>
+                <polyline points="5 12 12 5 19 12"></polyline>
+              </svg>
+            </span>
+          </button>
+        </div>
+      </div>
+
+      <!-- One Small Muted Line Under Input -->
+      <div class="demo-notice">
+        Public demo: questions are sent to open-weight NVIDIA Nemotron endpoints. Do not enter personal or confidential data. Max 500 characters.
+      </div>
+
+      <!-- Sample Questions & Pre-computed Dropdown -->
+      <div class="suggestions-wrap">
+        <div class="suggestions-label">Suggestions</div>
+        <div class="chip-list">
+          <button type="button" class="chip" onclick="setQuestion('How much annual financial grant can smallholder farmers receive under the crop welfare program?')">
+            <span class="chip-lang">EN</span>
+            <span>Crop Welfare Grant assistance amount</span>
+          </button>
+          <button type="button" class="chip" onclick="setQuestion('फसल कल्याण कार्यक्रम के तहत किसानों को साल भर में कुल कितनी मदद मिलती है?')">
+            <span class="chip-lang">HI</span>
+            <span>फसल कल्याण अनुदान (Devanagari digits)</span>
+          </button>
+          <button type="button" class="chip" onclick="setQuestion('शेतामध्ये सौर उर्जेवर चालणारा पंप बसवण्यासाठी शेतकऱ्याला स्वतःचा हिस्सा किती भरावा लागतो?')">
+            <span class="chip-lang">MR</span>
+            <span>सौर कृषी पंप अनुदान (शेतकरी स्वहिस्सा)</span>
+          </button>
+          <button type="button" class="chip" onclick="setQuestion('पीक कल्याण अनुदानाचा अर्ज भरण्यासाठी शेती सातबारा उताऱ्यावर कोणती नोंद असावी लागते?')">
+            <span class="chip-lang">MR Trap</span>
+            <span>सातबारा उतारा (Near-Miss)</span>
+          </button>
+          <button type="button" class="chip" onclick="setQuestion('What is the computational speedup of Shor\'s quantum algorithm compared to classical factoring?')">
+            <span class="chip-lang">EN Trap</span>
+            <span>Quantum Computing (Off-Topic)</span>
+          </button>
+        </div>
+
+        <div class="example-select-wrap">
+          <label for="exampleSelector" class="example-select-label">Load an example:</label>
+          <select id="exampleSelector">
+            <option value="">-- Select pre-computed trace --</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Gentle Loading Bubble -->
+      <div id="loadingBubble" class="loading-bubble" style="display: none;">
+        <div class="pulsing-dots">
+          <span></span><span></span><span></span>
+        </div>
+        <span class="loading-text">Verifying evidence with deterministic grounding checks...</span>
+      </div>
+
+      <!-- Empty State -->
+      <div id="emptyState" class="empty-state">
+        <svg class="empty-state-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+        <div class="empty-state-title">Awaiting your question</div>
+        <p class="empty-state-desc">
+          Type an agricultural query above or pick one of the suggestions to see deterministic checks, citation auditing, and safe refusals in action.
+        </p>
+      </div>
+
+      <!-- Live Answer Message Card -->
+      <div id="outputCard" class="message-card" style="display: none;">
+        <div class="message-header-row">
+          <div class="message-assistant-id">
+            <div class="avatar-icon-wrap">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 21V7a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v14M4 11h16M12 3v18"/>
+              </svg>
+            </div>
+            <span class="assistant-name">groundgate</span>
+          </div>
+
+          <span id="outcomeBadge" class="verdict-pill pill-verified">Verified</span>
+        </div>
+
+        <div id="cachedNotice" class="cached-notice-pill" style="display:none;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="16" x2="12" y2="12"></line>
+            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+          </svg>
+          <span id="cachedNoticeText">Displaying verified cached demonstration trace.</span>
+        </div>
+
+        <!-- Serif Answer Text -->
+        <div id="answerText" class="answer-serif-text"></div>
+
+        <div class="meta-summary-strip">
+          <span>Sources: <strong id="sourcesList">None</strong></span> &bull;
+          <span>Calls: <strong id="callsCount">0</strong></span> &bull;
+          <span>Escalated: <strong id="escalatedFlag">No</strong></span>
+        </div>
+
+        <!-- Collapsible Gate Checks Disclosure -->
+        <details class="disclosure" open>
+          <summary class="disclosure-header">
+            <span>Gate checks &amp; verification criteria</span>
+            <svg class="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </summary>
+          <div class="disclosure-body">
+            <table class="checks-table">
+              <tbody id="ledgerChecksBody">
+                <!-- Dynamically populated and ticked -->
+              </tbody>
+            </table>
+          </div>
+        </details>
+
+        <!-- Cited Passages Quote Cards -->
+        <div class="citations-section">
+          <div class="citations-heading">Cited passages</div>
+          <div id="citedPassagesList" class="quote-cards-list"></div>
+        </div>
+
+        <!-- Collapsible Execution Audit Timeline -->
+        <details class="disclosure" style="margin-top: 1rem;">
+          <summary class="disclosure-header">
+            <span>Execution audit trace</span>
+            <svg class="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </summary>
+          <div class="disclosure-body">
+            <div class="timeline" id="timelineList"></div>
+          </div>
+        </details>
+      </div>
+
+    </div>
+
+    <!-- ====================================================================
+         TAB 2: RESULTS (BENCHMARK)
+         ==================================================================== -->
+    <div id="tab-results" class="tab-content">
+      <div class="results-wrap">
+        <div class="card-panel">
+          <h2 class="panel-title">Multilingual Grounding Benchmark</h2>
+          <p class="panel-subtitle">Raw baseline vs LLM-as-Judge vs GroundGate cascade.</p>
+
+          <!-- Soft Bordered Caveats Note -->
+          <div class="caveats-box">
+            <div class="caveats-title">Methodology Notes &amp; Caveats</div>
+            <ul class="caveats-list">
+              <li><strong>Circularity Notice:</strong> The ungrounded-answer rate for the Gate setup is measured using the same deterministic Python checks the gate implements. It reflects gate execution consistency, not an external accuracy benchmark.</li>
+              <li><strong>Sample Size:</strong> With a 30-question test set (20 answerable, 10 traps), observed variations are illustrative and anecdotal; they are not statistically significant.</li>
+              <li><strong>Placeholder Knowledge Pack:</strong> Reference passages use synthetic, fictional schemes to prevent real-world misguidance.</li>
+            </ul>
+          </div>
+
+          <div id="resultsLoading" style="text-align: center; padding: 2rem; color: var(--muted); font-family: var(--serif);">
+            Loading benchmark ledger from server...
+          </div>
+
+          <div id="resultsContent" style="display: none;">
+            <div class="table-responsive">
+              <table id="summaryTable" class="soft-table">
+                <thead>
+                  <tr>
+                    <th>Setup</th>
+                    <th>Questions</th>
+                    <th>Citation Valid</th>
+                    <th>Ungrounded Rate</th>
+                    <th>Trap Wrong Ans</th>
+                    <th>Trap Refusal</th>
+                    <th>Ans Refusal</th>
+                    <th>Calls</th>
+                    <th>Extra Calls</th>
+                    <th>Avg Latency</th>
+                  </tr>
+                </thead>
+                <tbody id="summaryTableBody"></tbody>
+              </table>
+            </div>
+
+            <div class="charts-grid">
+              <div class="chart-card">
+                <div class="chart-label">Citation Validity Rate (higher is better)</div>
+                <div id="chartCitation" class="bar-chart-container"></div>
+              </div>
+              <div class="chart-card">
+                <div class="chart-label">Ungrounded Answer Rate (lower is better)</div>
+                <div id="chartUngrounded" class="bar-chart-container"></div>
+              </div>
+              <div class="chart-card">
+                <div class="chart-label">Trap Correct Refusal Rate (higher is better)</div>
+                <div id="chartTrapRefusal" class="bar-chart-container"></div>
+              </div>
+              <div class="chart-card">
+                <div class="chart-label">Average Model Calls per Query</div>
+                <div id="chartCalls" class="bar-chart-container"></div>
+              </div>
+            </div>
+
+            <div style="margin-top: 1.5rem;">
+              <h3 style="font-size: 0.95rem; font-weight: 600; margin-bottom: 0.75rem;">Performance by Language</h3>
+              <div class="table-responsive">
+                <table id="langTable" class="soft-table">
+                  <thead>
+                    <tr>
+                      <th>Setup</th>
+                      <th>Language</th>
+                      <th>Citation Valid</th>
+                      <th>Ungrounded</th>
+                      <th>Trap Refusal</th>
+                      <th>Over-Abstention</th>
+                      <th>Calls</th>
+                    </tr>
+                  </thead>
+                  <tbody id="langTableBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====================================================================
+         TAB 3: ABOUT (ARCHITECTURE)
+         ==================================================================== -->
+    <div id="tab-about" class="tab-content">
+      <div class="about-wrap">
+        <div class="card-panel">
+          <h2 class="panel-title">Problem Statement &amp; Motivation</h2>
+          <p class="editorial-p">
+            Open-weight LLMs sound confident but frequently hallucinate factual numbers, invent source IDs, or drift into English when queried in Indic languages. Wrong answers matter most where users depend on advice (e.g. citizens or farmers inquiring about agricultural schemes, land subsidies, or livestock compensation).
+          </p>
+          <p class="editorial-p">
+            Existing open grounding checkers are built and tested primarily for English. Studies report lower detection accuracy on multilingual and low-resource languages, with Hindi and Marathi frequently exhibiting severe hallucination rates. <strong>groundgate</strong> introduces deterministic, Devanagari-aware verification combined with a verifier-triggered single escalation cascade.
+          </p>
+        </div>
+
+        <div class="card-panel">
+          <h2 class="panel-title">Pipeline Architecture</h2>
+          <p class="editorial-p">
+            The harness verifies factual grounding deterministically without an extra LLM call, escalating once to a larger tier-2 model if verification fails, and safely refusing otherwise.
+          </p>
+
+          <div class="diagram-panel">
+            <svg class="pipeline-svg" viewBox="0 0 860 270" fill="none" stroke="currentColor" xmlns="http://www.w3.org/2000/svg">
+              <style>
+                .box-rect { stroke-width: 1.5; fill: var(--surface); stroke: var(--border); rx: 8px; }
+                .text-title { font-family: var(--serif); font-size: 13px; font-weight: 700; fill: var(--text); }
+                .text-sub { font-family: var(--mono); font-size: 10px; fill: var(--muted); }
+                .conn-line { stroke: var(--muted); stroke-width: 1.5; }
+                .arrow-head { fill: var(--muted); }
+              </style>
+              <defs>
+                <marker id="arrow" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                  <path d="M 0 1 L 8 5 L 0 9 z" class="arrow-head" />
+                </marker>
+              </defs>
+
+              <!-- Node 1: User Query -->
+              <rect x="20" y="30" width="130" height="60" class="box-rect" />
+              <text x="85" y="55" text-anchor="middle" class="text-title">User Query</text>
+              <text x="85" y="73" text-anchor="middle" class="text-sub">EN / HI / MR</text>
+
+              <path d="M 150 60 L 188 60" class="conn-line" marker-end="url(#arrow)" />
+
+              <!-- Node 2: Routing & BM25 -->
+              <rect x="190" y="30" width="150" height="60" class="box-rect" />
+              <text x="265" y="55" text-anchor="middle" class="text-title">BM25 Retrieval</text>
+              <text x="265" y="73" text-anchor="middle" class="text-sub">Words + Char 3-Grams</text>
+
+              <!-- Precheck refusal branch -->
+              <path d="M 265 90 L 265 160 L 210 160" class="conn-line" marker-end="url(#arrow)" />
+              <rect x="70" y="135" width="140" height="50" class="box-rect" stroke="var(--refusal-terracotta)" />
+              <text x="140" y="157" text-anchor="middle" class="text-title" style="fill: var(--refusal-terracotta);">Safe Refusal</text>
+              <text x="140" y="173" text-anchor="middle" class="text-sub">Score &lt; 1.5 (0 Calls)</text>
+
+              <!-- Arrow to Tier-1 -->
+              <path d="M 340 60 L 378 60" class="conn-line" marker-end="url(#arrow)" />
+
+              <!-- Node 3: Tier-1 Fast Model -->
+              <rect x="380" y="30" width="140" height="60" class="box-rect" />
+              <text x="450" y="55" text-anchor="middle" class="text-title">Tier-1 Model</text>
+              <text x="450" y="73" text-anchor="middle" class="text-sub">Strict JSON Contract</text>
+
+              <path d="M 520 60 L 558 60" class="conn-line" marker-end="url(#arrow)" />
+
+              <!-- Node 4: Deterministic Gate -->
+              <rect x="560" y="25" width="150" height="70" class="box-rect" stroke="var(--accent)" stroke-width="2" />
+              <text x="635" y="52" text-anchor="middle" class="text-title">Grounding Gate</text>
+              <text x="635" y="70" text-anchor="middle" class="text-sub">Numbers, Sources,</text>
+              <text x="635" y="83" text-anchor="middle" class="text-sub">Overlap &amp; Script Match</text>
+
+              <!-- Pass Branch -->
+              <path d="M 710 60 L 758 60" class="conn-line" marker-end="url(#arrow)" />
+              <rect x="760" y="35" width="90" height="50" class="box-rect" stroke="var(--verified-green)" />
+              <text x="805" y="57" text-anchor="middle" class="text-title" style="fill: var(--verified-green);">Verified</text>
+              <text x="805" y="73" text-anchor="middle" class="text-sub">1 Model Call</text>
+
+              <!-- Fail Branch: Down to Tier-2 -->
+              <path d="M 635 95 L 635 158" class="conn-line" marker-end="url(#arrow)" />
+
+              <!-- Node 5: Tier-2 Escalation -->
+              <rect x="555" y="160" width="160" height="60" class="box-rect" />
+              <text x="635" y="185" text-anchor="middle" class="text-title">Tier-2 Escalation</text>
+              <text x="635" y="203" text-anchor="middle" class="text-sub">Itemized Feedback (1x)</text>
+
+              <!-- Arrow from Tier-2 to Verified -->
+              <path d="M 715 190 L 758 190" class="conn-line" marker-end="url(#arrow)" />
+              <rect x="760" y="165" width="90" height="50" class="box-rect" stroke="var(--verified-green)" />
+              <text x="805" y="187" text-anchor="middle" class="text-title" style="fill: var(--verified-green);">Verified</text>
+              <text x="805" y="203" text-anchor="middle" class="text-sub">2 Model Calls</text>
+
+              <!-- Safe Refusal terminal if Tier-2 fails -->
+              <path d="M 555 190 L 515 190 L 515 220 L 400 220 L 400 185" class="conn-line" marker-end="url(#arrow)" />
+              <rect x="330" y="145" width="140" height="40" class="box-rect" stroke="var(--refusal-terracotta)" />
+              <text x="400" y="168" text-anchor="middle" class="text-sub" style="fill: var(--refusal-terracotta); font-weight: 700;">Refuse Safely (2 Calls)</text>
+            </svg>
+          </div>
+        </div>
+
+        <div class="card-panel">
+          <h2 class="panel-title">Honest Positioning &amp; Related Work</h2>
+          <p class="editorial-p">
+            Grounded-answer gates, RAG evaluation frameworks, and model cascades already exist. Our contributions are (1) Devanagari-aware deterministic grounding checks, (2) a verifier-triggered single escalation policy, and (3) a multilingual benchmark comparing raw vs LLM-as-judge vs deterministic gating.
+          </p>
+          <div class="table-responsive">
+            <table class="soft-table">
+              <thead>
+                <tr>
+                  <th>Framework</th>
+                  <th>Focus / Methodology</th>
+                  <th>Relationship to groundgate</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>verifiable-rag / RagWarden</strong></td>
+                  <td>Citation and passage grounding checks</td>
+                  <td>groundgate adapts deterministic extraction for Devanagari numerals and danda (&ldquo;&bull;&rdquo;) punctuation.</td>
+                </tr>
+                <tr>
+                  <td><strong>Ragas / DeepEval / TruLens</strong></td>
+                  <td>RAG evaluation using LLM-as-a-judge</td>
+                  <td>Uses non-deterministic judge models; groundgate runs 100% deterministic, zero-cost Python checks.</td>
+                </tr>
+                <tr>
+                  <td><strong>NeMo Guardrails</strong></td>
+                  <td>Programmable guardrails for LLM dialogue</td>
+                  <td>NeMo enforces conversational flows; groundgate is a lightweight standalone harness for QA.</td>
+                </tr>
+                <tr>
+                  <td><strong>FrugalGPT / AutoMix / RouteLLM</strong></td>
+                  <td>Small-to-large model routing &amp; cascades</td>
+                  <td>Cascades traditionally route on perplexity or confidence; groundgate cascades on verifier failure.</td>
+                </tr>
+                <tr>
+                  <td><strong>NVIDIA Switchyard</strong></td>
+                  <td>Model orchestration framework</td>
+                  <td>Enterprise orchestration; groundgate is an open-source, minimal 4-hour hackathon harness.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card-panel">
+          <h2 class="panel-title">Known Limitations</h2>
+          <ul class="caveats-list">
+            <li><strong>Gate Scope:</strong> The gate catches hallucinated numbers, invalid source citations, token divergence, and language mismatch. It does <em>not</em> catch subtle semantic unfaithfulness if all cited words and numbers match.</li>
+            <li><strong>Small Benchmark:</strong> The included 30-question evaluation dataset is exploratory. Larger statistical validation on diverse domains is required.</li>
+            <li><strong>Rate-Limited Free Tiers:</strong> Free open-weight endpoints (OpenRouter :free and NVIDIA API Catalog) enforce tight RPM limits and may log prompts.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Slim Footer -->
+  <footer>
+    <div>groundgate &bull; Apache-2.0 License &bull; Hacktoberfest Hack Day (Nashik, MLH)</div>
+    <div>Devanagari-Aware Deterministic Grounding Harness for English, Hindi, and Marathi</div>
+  </footer>
+
+  <script>
+    // Embedded Knowledge Pack Snippets for Margin Quotes (works 100% offline)
+    const KNOWLEDGE_PACK_SNIPPETS = {
+      "T01_EN": { title: "Fictional Crop Welfare Grant", text: "Under the Fictional Crop Welfare Grant, registered smallholder farmers receive an annual assistance of 7500 rupees distributed across 3 equal cycles. Applicants must cultivate at least 2 hectares of eligible pulses or oilseeds." },
+      "T01_HI": { title: "काल्पनिक फसल कल्याण अनुदान", text: "काल्पनिक फसल कल्याण अनुदान के अंतर्गत पंजीकृत लघु किसानों को प्रति वर्ष ७५०० रुपये की सहायता ३ समान किस्तों में प्रदान की जाती है। आवेदकों के पास कम से कम २ हेक्टेयर दाल या तिलहन की भूमि होनी आवश्यक है।" },
+      "T01_MR": { title: "काल्पनिक पीक कल्याण अनुदान", text: "काल्पनिक पीक कल्याण अनुदानांतर्गत नोंदणीकृत अल्पभूधारक शेतकऱ्यांना दरवर्षी ७५०० रुपये आर्थिक सहाय्य ३ समान टप्प्यांत दिले जाते. अर्जदाराकडे किमान २ हेक्टर कडधान्य किंवा गळीत धान्याची शेती असणे आवश्यक आहे।" },
+      "T02_EN": { title: "Mock Solar Pump Subsidy Scheme", text: "The Mock Solar Pump Subsidy Scheme provides 85% capital subsidy for installing 5 horsepower agricultural irrigation pumps. Farmers must contribute the remaining 15% margin money through direct bank transfer." },
+      "T02_HI": { title: "प्रायोगिक सौर पंप सब्सिडी योजना", text: "प्रायोगिक सौर पंप सब्सिडी योजना ५ हॉर्सपावर के कृषि सिंचाई पंप की स्थापना हेतु ८५% पूंजीगत सब्सिडी प्रदान करती है। किसानों को शेष १५% अंशदान राशि सीधे बैंक हस्तांतरण द्वारा जमा करनी होगी।" },
+      "T02_MR": { title: "प्रायोगिक सौर कृषी पंप अनुदान योजना", text: "प्रायोगिक सौर कृषी पंप अनुदान योजनेनुसार ५ अश्वशक्ती क्षमतेच्या कृषी पंपाच्या स्थापनेसाठी ८५% भांडवली अनुदान दिले जाते. शेतकऱ्यांनी उर्वरित १५% स्वहिस्सा थेट बँक खात्याद्वारे भरणे अनिवार्य आहे।" },
+      "T03_EN": { title: "Fictional Dairy Livestock Insurance", text: "The Fictional Dairy Livestock Insurance protects indigenous cattle against seasonal diseases with an annual policy premium of 450 rupees per animal. Maximum financial compensation is capped at 40000 rupees per insured milch cow." },
+      "T03_HI": { title: "काल्पनिक दुग्ध पशुधन बीमा", text: "काल्पनिक दुग्ध पशुधन बीमा देशी गायों को मौसमी बीमारियों से सुरक्षित करने के लिए प्रति पशु ४५० रुपये का वार्षिक प्रीमियम लेता है। किसी भी बीमित दुधारू गाय के लिए अधिकतम मुआवजा राशि ४०००० रुपये निर्धारित है।" },
+      "T03_MR": { title: "काल्पनिक दुग्ध पशुधन विमा योजना", text: "काल्पनिक दुग्ध पशुधन विमा योजनेत देशी जनावरांच्या आजारांविरुद्ध संरक्षणासाठी प्रति जनावर ४५० रुपये वार्षिक हप्ता आकारला जातो. विमित दुभत्या गायीसाठी जास्तीत जास्त नुकसान भरपाई ४०००० रुपये इतकी निश्चित आहे।" },
+      "T04_EN": { title: "Simulated Organic Fertilizer Rebate", text: "Under the Simulated Organic Fertilizer Rebate, certified organic growers receive a flat cashback of 1200 rupees per metric ton of vermicompost purchased. Each cooperative society can claim rebates for up to 50 metric tons annually." },
+      "T04_HI": { title: "नकली जैविक उर्वरक छूट", text: "नकली जैविक उर्वरक छूट योजना में प्रमाणित जैविक किसानों को खरीदी गई प्रति मीट्रिक टन वर्मीकंपोस्ट पर 1200 रुपये का सीधा कैशबैक दिया जाता है। प्रत्येक सहकारी समिति प्रति वर्ष अधिकतम 50 मीट्रिक टन तक छूट प्राप्त कर सकती है।" },
+      "T04_MR": { title: "प्रात्यक्षिक सेंद्रिय खत परतावा योजना", text: "प्रात्यक्षिक सेंद्रिय खत परतावा योजनेखाली प्रमाणित सेंद्रिय उत्पादकांना खरेदी केलेल्या गांडूळ खतावर प्रति मेट्रिक टन १२०० रुपये परतावा दिला जातो. प्रत्येक सहकारी संस्थेला वर्षाला जास्तीत जास्त ५० मेट्रिक टनांपर्यंत परतावा मिळू शकतो." },
+      "T05_EN": { title: "Fictional Drip Micro Irrigation Incentive", text: "The Fictional Drip Micro Irrigation Incentive covers 70% of piping material costs for drip irrigation systems installed on plots up to 4 hectares. Certified suppliers provide a mandatory 3 year operational maintenance warranty." },
+      "T05_HI": { title: "काल्पनिक सूक्ष्म ड्रिप सिंचाई प्रोत्साहन", text: "काल्पनिक सूक्ष्म ड्रिप सिंचाई प्रोत्साहन ४ हेक्टेयर तक के भूखंडों पर स्थापित ड्रिप पाइप सामग्री लागत का ७०% हिस्सा वहन करता है। प्रमाणित विक्रेताओं द्वारा ३ वर्ष की अनिवार्य रखरखाव गारंटी दी जाती है।" },
+      "T05_MR": { title: "काल्पनिक ठिबक सूक्ष्म सिंचन प्रोत्साहन", text: "काल्पनिक ठिबक सूक्ष्म सिंचन प्रोत्साहन योजनेअंतर्गत ४ हेक्टरपर्यंतच्या जमिनीवर ठिबक पाइप साहित्याच्या खर्चावर ७०% अनुदान दिले जाते. अधिकृत पुरवठादारांकडून ३ वर्षांची मोफत दुरुस्ती हमी देणे बंधनकारक आहे." },
+      "T06_EN": { title: "Synthetic Grain Storage Warehouse Subsidy", text: "The Synthetic Grain Storage Warehouse Subsidy grants 350000 rupees towards constructing rural foodgrain godowns with a minimal storage capacity of 250 metric tons. The warehouse facility must include automated grain aeration fans." },
+      "T06_HI": { title: "कृत्रिम धान्य भंडारण गोदाम अनुदान", text: "कृत्रिम धान्य भंडारण गोदाम अनुदान योजना न्यूनतम 250 मीट्रिक टन क्षमता वाले ग्रामीण अनाज गोदाम के निर्माण हेतु 350000 रुपये का अनुदान देती है। गोदाम परिसर में स्वचालित वेंटिलेशन पंखे होना अनिवार्य है।" },
+      "T06_MR": { title: "काल्पनिक धान्य साठवणूक गोदाम योजना", text: "काल्पनिक धान्य साठवणूक गोदाम योजनेअंतर्गत किमान २५० मेट्रिक टन साठवणूक क्षमता असणाऱ्या ग्रामीण गोदामाच्या बांधकामासाठी ३५०००० रुपये अनुदान दिले जाते. गोदाम इमारतीत स्वयंचलित हवा खेळती ठेवणारे पंखे असणे आवश्यक आहे." },
+      "T07_EN": { title: "Model Farm Mechanization Voucher", text: "The Model Farm Mechanization Voucher program offers agricultural equipment discount coupons valued at 18000 rupees for acquiring power tillers. Beneficiaries must possess an active farmer registration card issued after 2021." },
+      "T07_HI": { title: "आदर्श कृषि यांत्रिकीकरण वाउचर", text: "आदर्श कृषि यांत्रिकीकरण वाउचर कार्यक्रम पॉवर टिलर की खरीद पर 18000 रुपये का छूट कूपन प्रदान करता है। लाभार्थियों के पास वर्ष 2021 के बाद जारी किया गया सक्रिय किसान पहचान पत्र होना आवश्यक है।" },
+      "T07_MR": { title: "आदर्श शेती यांत्रिकीकरण व्हाऊचर योजना", text: "आदर्श शेती यांत्रिकीकरण व्हाऊचर योजनेमध्ये पॉवर टिलर खरेदीसाठी १८००० रुपयांचे सवलत कूपन दिले जाते. लाभार्थ्यांकडे २०२१ नंतर दिलेले सक्रिय शेतकरी ओळखपत्र असणे गरजेचे आहे." },
+      "T08_EN": { title: "Hypothetical Fishery Pond Excavation Grant", text: "The Hypothetical Fishery Pond Excavation Grant subsidizes freshwater aquaculture pond construction with 95000 rupees for community water bodies measuring 1 hectare. Beneficiaries must stock at least 5000 fingerlings within 60 days." },
+      "T08_HI": { title: "काल्पनिक मत्स्य पालन तालाब खुदाई अनुदान", text: "काल्पनिक मत्स्य पालन तालाब खुदाई अनुदान 1 हेक्टेयर क्षेत्रफल वाले सामुदायिक जल स्रोतों में मीठे पानी के मत्स्य तालाब निर्माण हेतु 95000 रुपये देता है। लाभार्थियों को 60 दिनों के भीतर कम से कम 5000 मत्स्य बीज डालना आवश्यक है।" },
+      "T08_MR": { title: "काल्पनिक शेततळे मत्स्यव्यवसाय अनुदान", text: "काल्पनिक शेततळे मत्स्यव्यवसाय अनुदानामध्ये १ हेक्टर आकाराच्या गोड्या पाण्याच्या मत्स्यतळे खोदकामासाठी ९५००० रुपये दिले जातात. लाभार्थ्यांनी ६० दिवसांच्या आत किमान ५००० मत्स्यबीज सोडणे बंधनकारक आहे." },
+      "T09_EN": { title: "Fictional Greenhouse Horticulture Allowance", text: "Under the Fictional Greenhouse Horticulture Allowance, vegetable producers constructing naturally ventilated polyhouses receive 220000 rupees for every 1000 square meters completed. Cultivation must utilize soil-less nursery plugs for at least 80% of seedlings." },
+      "T09_HI": { title: "काल्पनिक ग्रीनहाउस बागवानी भत्ता", text: "काल्पनिक ग्रीनहाउस बागवानी भत्ता योजना में प्राकृतिक रूप से हवादार पॉलीहाउस बनाने वाले सब्जी उत्पादकों को प्रति 1000 वर्ग मीटर पर 220000 रुपये दिए जाते हैं। कम से कम 80% पौधों के लिए मिट्टी रहित नर्सरी प्लग का उपयोग अनिवार्य है।" },
+      "T09_MR": { title: "काल्पनिक हरितगृह फलोत्पादन भत्ता", text: "काल्पनिक हरितगृह फलोत्पादन भत्ता योजनेअंतर्गत नैसर्गिक हवेशीर पॉलीहाऊस उभारणी करणाऱ्या भाजीपाला उत्पादकांना प्रत्येक १००० चौरस मीटरसाठी २२०००० रुपये मिळतात. किमान ८०% रोपांची लागवड मातीविहीन नर्सरी ट्रेमध्ये केलेली असणे बंधनकारक आहे." }
+    };
+
+    // Theme Management
+    function initTheme() {
+      const savedTheme = null;
+      if (savedTheme) {
+        document.documentElement.setAttribute('data-theme', savedTheme);
+      }
+      updateThemeIcon();
+    }
+
+    function toggleTheme() {
+      const current = document.documentElement.getAttribute('data-theme');
+      const isDark = current === 'dark' || (!current && window.matchMedia('(prefers-color-scheme: dark)').matches);
+      const next = isDark ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      
+      updateThemeIcon();
+    }
+
+    function updateThemeIcon() {
+      const current = document.documentElement.getAttribute('data-theme');
+      const isDark = current === 'dark' || (!current && window.matchMedia('(prefers-color-scheme: dark)').matches);
+      const sun = document.getElementById('themeIconSun');
+      const moon = document.getElementById('themeIconMoon');
+      if (isDark) {
+        if (sun) sun.style.display = 'block';
+        if (moon) moon.style.display = 'none';
+      } else {
+        if (sun) sun.style.display = 'none';
+        if (moon) moon.style.display = 'block';
+      }
+    }
+
+    initTheme();
+
+    // Tab Switching
+    const tabButtons = document.querySelectorAll('.tab-btn');
+    const tabContents = document.querySelectorAll('.tab-content');
+
+    tabButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const targetTab = btn.getAttribute('data-tab');
+        tabButtons.forEach(b => b.classList.remove('active'));
+        tabContents.forEach(c => c.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById(`tab-${targetTab}`).classList.add('active');
+
+        if (targetTab === 'results') {
+          loadResults();
+        }
+      });
+    });
+
+    // Character Counter & Enter to Submit (Shift+Enter for newline)
+    const qInput = document.getElementById('questionInput');
+    const charCount = document.getElementById('charCount');
+
+    qInput.addEventListener('input', () => {
+      const len = qInput.value.length;
+      charCount.textContent = `${len} / 500 chars`;
+      if (len > 500) {
+        charCount.style.color = 'var(--refusal-terracotta)';
+      } else {
+        charCount.style.color = 'var(--muted)';
+      }
+    });
+
+    qInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        submitQuery();
+      }
+    });
+
+    function setQuestion(text) {
+      qInput.value = text;
+      qInput.dispatchEvent(new Event('input'));
+      qInput.focus();
+    }
+
+    // Load Pre-computed Example Traces
+    let cachedTraces = [];
+    async function loadExampleTraces() {
+      try {
+        const res = await fetch('/api/example-traces');
+        if (res.ok) {
+          cachedTraces = await res.json();
+          const selector = document.getElementById('exampleSelector');
+          selector.innerHTML = '<option value="">-- Select pre-computed trace --</option>';
+          cachedTraces.forEach((t, i) => {
+            const opt = document.createElement('option');
+            opt.value = i;
+            opt.textContent = `[${t.outcome.toUpperCase()}] ${t.title}`;
+            selector.appendChild(opt);
+          });
+        }
+      } catch (e) {
+        console.warn('Could not load example traces:', e);
+      }
+    }
+
+    document.getElementById('exampleSelector').addEventListener('change', (e) => {
+      const idx = e.target.value;
+      if (idx !== '') {
+        const item = cachedTraces[idx];
+        if (item) {
+          qInput.value = item.question;
+          qInput.dispatchEvent(new Event('input'));
+          displayOutput(item);
+        }
+      }
+    });
+
+    // Submit Live Query
+    async function submitQuery() {
+      const question = qInput.value.trim();
+      if (!question) {
+        alert('Please enter a question.');
+        return;
+      }
+      if (question.length > 500) {
+        alert('Question exceeds 500 characters.');
+        return;
+      }
+
+      const btn = document.getElementById('askBtn');
+      const spinner = document.getElementById('btnSpinner');
+      const btnText = document.getElementById('btnText');
+      const loadingBubble = document.getElementById('loadingBubble');
+      const emptyState = document.getElementById('emptyState');
+      const outputCard = document.getElementById('outputCard');
+
+      btn.disabled = true;
+      spinner.style.display = 'inline-flex';
+      btnText.style.display = 'none';
+
+      if (emptyState) emptyState.style.display = 'none';
+      if (outputCard) outputCard.style.display = 'none';
+      if (loadingBubble) loadingBubble.style.display = 'flex';
+
+      try {
+        const res = await fetch('/api/ask', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ question })
+        });
+
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.detail || `Server returned HTTP ${res.status}`);
+        }
+
+        const data = await res.json();
+        displayOutput(data);
+      } catch (err) {
+        alert(`Error executing query: ${err.message}`);
+        if (emptyState) emptyState.style.display = 'block';
+      } finally {
+        btn.disabled = false;
+        spinner.style.display = 'none';
+        btnText.style.display = 'inline-flex';
+        if (loadingBubble) loadingBubble.style.display = 'none';
+      }
+    }
+
+    // Display Output with Staggered Check Ticks
+    function displayOutput(data) {
+      const emptyState = document.getElementById('emptyState');
+      const outputCard = document.getElementById('outputCard');
+      const loadingBubble = document.getElementById('loadingBubble');
+
+      if (emptyState) emptyState.style.display = 'none';
+      if (loadingBubble) loadingBubble.style.display = 'none';
+      outputCard.style.display = 'block';
+
+      // Verdict Pill
+      const badge = document.getElementById('outcomeBadge');
+      const outcome = (data.outcome || 'failed').toLowerCase();
+      badge.className = `verdict-pill badge badge-${outcome}`;
+      
+      if (outcome === 'passed') {
+        badge.className += ' pill-verified';
+        badge.textContent = 'Passed gate';
+      } else {
+        badge.className += ' pill-declined';
+        badge.textContent = 'Not answered';
+      }
+
+      // Cached demonstration banner
+      const cachedBanner = document.getElementById('cachedNotice');
+      if (data.is_cached_example) {
+        cachedBanner.style.display = 'flex';
+        document.getElementById('cachedNoticeText').textContent = data.notice || 'Displaying verified cached demonstration trace.';
+      } else {
+        cachedBanner.style.display = 'none';
+      }
+
+      // Answer & metadata summary
+      document.getElementById('answerText').textContent = data.answer || '(No answer text)';
+      const sources = data.sources && data.sources.length ? data.sources.join(', ') : 'None';
+      document.getElementById('sourcesList').textContent = sources;
+      document.getElementById('callsCount').textContent = data.model_calls ?? 0;
+      document.getElementById('escalatedFlag').textContent = data.escalated ? 'Yes (Tier-2)' : 'No';
+
+      // 1. Build Ledger Checks Rows
+      const checksBody = document.getElementById('ledgerChecksBody');
+      checksBody.innerHTML = '';
+
+      const trace = data.trace || {};
+      const retrieval = trace.retrieval || {};
+      const attempts = trace.attempts || [];
+      const lastAttempt = attempts.length ? attempts[attempts.length - 1] : null;
+
+      const checkItems = [];
+
+      // Check 1: Language match
+      if (lastAttempt && lastAttempt.gate_checks) {
+        const langOk = lastAttempt.gate_checks.language_match !== false;
+        const devRatio = lastAttempt.gate_details?.answer_devanagari_ratio ?? 0;
+        checkItems.push({
+          name: 'Language Match',
+          obs: `Detected: ${trace.detected_language || 'unknown'} (Script: ${(devRatio * 100).toFixed(0)}% Devanagari)`,
+          pass: langOk
+        });
+      } else {
+        checkItems.push({
+          name: 'Language Routing',
+          obs: `Resolved to ${trace.detected_language || 'en'}`,
+          pass: retrieval.precheck_passed !== false
+        });
+      }
+
+      // Check 2: Sources real
+      if (lastAttempt && lastAttempt.gate_checks) {
+        const srcOk = lastAttempt.gate_checks.sources_real;
+        const citedCount = (data.sources || []).length;
+        checkItems.push({
+          name: 'Sources Real',
+          obs: `${citedCount} cited from ${retrieval.passages_count || 1} retrieved`,
+          pass: srcOk
+        });
+      } else {
+        checkItems.push({
+          name: 'BM25 Pre-check',
+          obs: `Score: ${retrieval.top_bm25_score ?? 0.0} (Min threshold: 1.5)`,
+          pass: Boolean(retrieval.precheck_passed)
+        });
+      }
+
+      // Check 3: Numbers grounded
+      if (lastAttempt && lastAttempt.gate_checks) {
+        const numOk = lastAttempt.gate_checks.numbers_grounded;
+        const ungrounded = lastAttempt.gate_details?.ungrounded_numbers || [];
+        checkItems.push({
+          name: 'Numbers Grounded',
+          obs: ungrounded.length === 0 ? 'All numbers found in cited passages' : `Ungrounded: ${ungrounded.join(', ')}`,
+          pass: numOk
+        });
+      } else {
+        checkItems.push({
+          name: 'Numbers Grounded',
+          obs: 'Pre-check refusal (0 model calls)',
+          pass: true
+        });
+      }
+
+      // Check 4: Text overlap
+      if (lastAttempt && lastAttempt.gate_checks) {
+        const overlapOk = lastAttempt.gate_checks.token_overlap;
+        const ratio = lastAttempt.gate_details?.token_overlap_ratio ?? 1.0;
+        const thresh = lastAttempt.gate_details?.overlap_threshold ?? 0.6;
+        checkItems.push({
+          name: 'Text Overlap',
+          obs: `${(ratio * 100).toFixed(1)}% overlap (Min threshold: ${(thresh * 100).toFixed(0)}%)`,
+          pass: overlapOk
+        });
+      } else {
+        checkItems.push({
+          name: 'Refusal Safe',
+          obs: 'Protected canonical refusal',
+          pass: true
+        });
+      }
+
+      // Execution info
+      const latencySec = lastAttempt ? `${(lastAttempt.latency || 0).toFixed(2)}s` : '0.00s';
+      const callsText = data.escalated ? `${data.model_calls} calls (escalated)` : `${data.model_calls} call(s)`;
+      checkItems.push({
+        name: 'Model Calls & Latency',
+        obs: `${callsText} &bull; ${latencySec}`,
+        pass: outcome !== 'failed'
+      });
+
+      checkItems.forEach(item => {
+        const tr = document.createElement('tr');
+        tr.className = 'check-row-pending check-row-item';
+        tr.innerHTML = `
+          <td>
+            <div class="check-title">${item.name}</div>
+            <div class="check-obs">${item.obs}</div>
+          </td>
+          <td class="check-status ${item.pass ? 'status-ok' : 'status-err'}">
+            ${item.pass ? '&#10003; Pass' : '&#10007; Fail'}
+          </td>
+        `;
+        checksBody.appendChild(tr);
+      });
+
+      // 2. Staggered Check Ticks (about 100ms apart)
+      const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const rowElements = checksBody.querySelectorAll('.check-row-item');
+
+      if (prefersReduced) {
+        rowElements.forEach(r => r.classList.remove('check-row-pending'));
+      } else {
+        rowElements.forEach((r, idx) => {
+          setTimeout(() => {
+            r.classList.remove('check-row-pending');
+            r.classList.add('check-row-visible');
+          }, (idx + 1) * 100);
+        });
+      }
+
+      // 3. Render Cited Passages
+      const citationsList = document.getElementById('citedPassagesList');
+      citationsList.innerHTML = '';
+
+      const citedIds = data.sources && data.sources.length ? data.sources : [];
+      if (citedIds.length > 0) {
+        citedIds.forEach(id => {
+          const passage = KNOWLEDGE_PACK_SNIPPETS[id] || { title: `Passage ${id}`, text: 'Reference passage from knowledge pack.' };
+          const card = document.createElement('div');
+          card.className = 'quote-card';
+          card.innerHTML = `
+            <div class="quote-source-label">Source ${id} &bull; ${passage.title}</div>
+            <div class="quote-text">&ldquo;${passage.text}&rdquo;</div>
+          `;
+          citationsList.appendChild(card);
+        });
+      } else {
+        const noCard = document.createElement('div');
+        noCard.style.padding = '0.5rem 0';
+        noCard.style.color = 'var(--muted)';
+        noCard.style.fontSize = '0.85rem';
+        noCard.textContent = outcome === 'refused'
+          ? 'No passages cited (safe refusal recorded).'
+          : 'No citations recorded.';
+        citationsList.appendChild(noCard);
+      }
+
+      // 4. Render Step Timeline
+      const timeline = document.getElementById('timelineList');
+      timeline.innerHTML = '';
+
+      // Node 1: Retrieval
+      const node1 = document.createElement('div');
+      const precheckOk = retrieval.precheck_passed;
+      node1.className = `step-node ${precheckOk ? 'node-ok' : 'node-err'}`;
+      node1.innerHTML = `
+        <div class="step-header">
+          <span>Step 1: Language Detection &amp; BM25</span>
+          <span class="check-status ${precheckOk ? 'status-ok' : 'status-err'}">${precheckOk ? 'PASSED' : 'REFUSED'}</span>
+        </div>
+        <div class="step-meta">
+          Detected: <strong>${trace.detected_language || 'unknown'}</strong> &bull;
+          BM25 Score: <strong>${retrieval.top_bm25_score ?? 0.0}</strong> &bull;
+          Passages: <strong>${(retrieval.retrieved_passage_ids || []).join(', ') || 'None'}</strong>
+        </div>
+      `;
+      timeline.appendChild(node1);
+
+      // Attempts
+      attempts.forEach((att, idx) => {
+        const node = document.createElement('div');
+        const isPassed = att.gate_passed;
+        const tierName = (att.tier || `attempt_${idx + 1}`).toUpperCase();
+        node.className = `step-node ${isPassed ? 'node-ok' : 'node-err'}`;
+
+        let checksHtml = '';
+        const checks = att.gate_checks || {};
+        for (const [chk, passed] of Object.entries(checks)) {
+          checksHtml += `
+            <div class="grid-check-item ${passed ? 'ok' : 'bad'}">
+              <span>${chk}</span>
+              <span>${passed ? '&#10003;' : '&#10007;'}</span>
+            </div>
+          `;
+        }
+
+        let failuresHtml = '';
+        if (att.gate_failures && att.gate_failures.length) {
+          failuresHtml = `
+            <div class="gate-failure-box">
+              <strong>Failures:</strong>
+              <ul style="margin-left: 1.2rem; margin-top: 0.2rem;">
+                ${att.gate_failures.map(f => `<li>${f}</li>`).join('')}
+              </ul>
+            </div>
+          `;
+        }
+
+        node.innerHTML = `
+          <div class="step-header">
+            <span>Step ${idx + 2}: ${tierName} Execution &amp; Gate</span>
+            <span class="check-status ${isPassed ? 'status-ok' : 'status-err'}">${isPassed ? 'PASSED' : 'FAILED'}</span>
+          </div>
+          <div class="step-meta">
+            Model: <strong>${att.model || 'unknown'}</strong> &bull;
+            Latency: <strong>${att.latency || 0}s</strong>
+          </div>
+          <div class="checks-grid">${checksHtml}</div>
+          ${failuresHtml}
+        `;
+        timeline.appendChild(node);
+      });
+
+      outputCard.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // Benchmark Results Loader
+    async function loadResults() {
+      const loading = document.getElementById('resultsLoading');
+      const content = document.getElementById('resultsContent');
+
+      loading.style.display = 'block';
+      content.style.display = 'none';
+
+      try {
+        const res = await fetch('/api/results');
+        const json = await res.json();
+
+        if (json.status !== 'ok' || !json.data) {
+          loading.innerHTML = `
+            <div style="background: var(--surface-subtle); border: 1px solid var(--border); padding: 1.5rem; border-radius: var(--radius-md);">
+              <h3 style="color: var(--refusal-terracotta); margin-bottom: 0.4rem; font-family: var(--serif);">Benchmark Results Not Found</h3>
+              <p style="font-size: 0.85rem; color: var(--muted); margin-bottom: 0.75rem;">
+                ${json.message || 'Run "python eval/run_eval.py" to execute the evaluation suite and populate results.json.'}
+              </p>
+              <div style="font-family: var(--mono); font-size: 0.78rem; background: var(--surface); padding: 0.4rem 0.8rem; border: 1px solid var(--border); border-radius: var(--radius-sm); display: inline-block;">
+                python eval/run_eval.py --setups raw,llm_judge,gate
+              </div>
+            </div>
+          `;
+          return;
+        }
+
+        renderResultsData(json.data);
+        loading.style.display = 'none';
+        content.style.display = 'block';
+      } catch (err) {
+        loading.innerHTML = `<span style="color:var(--refusal-terracotta);">Failed to load results: ${err.message}</span>`;
+      }
+    }
+
+    function renderResultsData(data) {
+      const summary = data.summary || {};
+      const tbody = document.getElementById('summaryTableBody');
+      tbody.innerHTML = '';
+
+      const setups = Object.keys(summary);
+      setups.forEach(setup => {
+        const o = summary[setup].overall || {};
+        const tr = document.createElement('tr');
+
+        const citRate = (o.citation_valid_rate * 100).toFixed(1);
+        const ungRate = (o.ungrounded_answer_rate * 100).toFixed(1);
+        const trapWrong = (o.wrong_answer_rate_on_traps * 100).toFixed(1);
+        const trapRef = (o.correct_refusal_rate_on_traps * 100).toFixed(1);
+        const ansRef = (o.refusal_rate_on_answerable * 100).toFixed(1);
+
+        tr.innerHTML = `
+          <td><strong>${setup.toUpperCase()}</strong></td>
+          <td>${o.total_questions || 0}</td>
+          <td>
+            <div class="rate-slim-cell">
+              <span class="rate-val">${citRate}%</span>
+              <div class="rate-track-slim"><div class="rate-bar-slim green" style="width: ${citRate}%;"></div></div>
+            </div>
+          </td>
+          <td>
+            <div class="rate-slim-cell">
+              <span class="rate-val" style="color: ${o.ungrounded_answer_rate > 0 ? 'var(--refusal-terracotta)' : 'var(--verified-green)'};">${ungRate}%</span>
+              <div class="rate-track-slim"><div class="rate-bar-slim red" style="width: ${ungRate}%;"></div></div>
+            </div>
+          </td>
+          <td>${trapWrong}%</td>
+          <td>
+            <div class="rate-slim-cell">
+              <span class="rate-val">${trapRef}%</span>
+              <div class="rate-track-slim"><div class="rate-bar-slim green" style="width: ${trapRef}%;"></div></div>
+            </div>
+          </td>
+          <td>${ansRef}%</td>
+          <td>${o.avg_model_calls || 0}</td>
+          <td>${o.avg_extra_model_calls || 0}</td>
+          <td>${o.avg_latency || 0}s</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      // Render Charts
+      renderBarChart('chartCitation', setups, setups.map(s => summary[s].overall.citation_valid_rate * 100), '%', 'var(--verified-green)');
+      renderBarChart('chartUngrounded', setups, setups.map(s => summary[s].overall.ungrounded_answer_rate * 100), '%', 'var(--refusal-terracotta)');
+      renderBarChart('chartTrapRefusal', setups, setups.map(s => summary[s].overall.correct_refusal_rate_on_traps * 100), '%', 'var(--verified-green)');
+      renderBarChart('chartCalls', setups, setups.map(s => summary[s].overall.avg_model_calls), '', 'var(--accent)', 3);
+
+      // Language Table
+      const langBody = document.getElementById('langTableBody');
+      langBody.innerHTML = '';
+      setups.forEach(setup => {
+        const byLang = summary[setup].by_language || {};
+        for (const [lang, m] of Object.entries(byLang)) {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${setup.toUpperCase()}</td>
+            <td><strong>${lang.toUpperCase()}</strong></td>
+            <td>${(m.citation_valid_rate * 100).toFixed(1)}%</td>
+            <td>${(m.ungrounded_answer_rate * 100).toFixed(1)}%</td>
+            <td>${(m.correct_refusal_rate_on_traps * 100).toFixed(1)}%</td>
+            <td>${(m.refusal_rate_on_answerable * 100).toFixed(1)}%</td>
+            <td>${m.avg_model_calls || 0}</td>
+          `;
+          langBody.appendChild(tr);
+        }
+      });
+    }
+
+    function renderBarChart(elementId, labels, values, unit = '', color = 'var(--accent)', maxVal = 100) {
+      const container = document.getElementById(elementId);
+      container.innerHTML = '';
+      labels.forEach((label, i) => {
+        const val = values[i] || 0;
+        const pct = Math.min(100, Math.max(0, (val / maxVal) * 100));
+        const row = document.createElement('div');
+        row.className = 'bar-row';
+        row.innerHTML = `
+          <div class="bar-row-label">${label.toUpperCase()}</div>
+          <div class="bar-row-track">
+            <div class="bar-row-fill" style="width: ${pct}%; background: ${color};"></div>
+          </div>
+          <div class="bar-row-val">${val.toFixed(1)}${unit}</div>
+        `;
+        container.appendChild(row);
+      });
+    }
+
+    // Load pre-computed examples at startup
+    loadExampleTraces();
+  </script>
+</body>
+</html>
