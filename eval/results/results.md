@@ -13,14 +13,22 @@
 
 | Setup | Questions | Errors | Citation Valid | Ungrounded Answers | Trap Wrong Answer | Trap Refusal | Answerable Refusal | Avg Calls | Avg Extra Calls | Avg Latency | Escalation Rate |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| raw | 5 | 0 | 100.0% | 20.0% | 0.0% | 0.0% | 0.0% | 1.0 | 0.0 | 0.02s | 0.0% |
+| raw | 30 | 0 | 100.0% | 10.0% | 0.0% | 100.0% | 0.0% | 1.0 | 0.0 | 3.09s | 0.0% |
+| gate | 30 | 0 | 100.0% | 0.0% | 0.0% | 100.0% | 5.0% | 1.03 | 0.03 | 7.97s | 3.3% |
 
 ## Performance by Language
 
 ### Setup: raw
 | Language | Questions | Errors | Citation Valid | Ungrounded Answers | Trap Refusal | Answerable Refusal | Avg Calls | Avg Latency |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| EN | 5 | 0 | 100.0% | 20.0% | 0.0% | 0.0% | 1.0 | 0.02s |
-| HI | 0 | 0 | 0.0% | 0.0% | 0.0% | 0.0% | 0.0 | 0.0s |
-| MR | 0 | 0 | 0.0% | 0.0% | 0.0% | 0.0% | 0.0 | 0.0s |
+| EN | 10 | 0 | 100.0% | 14.3% | 100.0% | 0.0% | 1.0 | 0.01s |
+| HI | 10 | 0 | 100.0% | 0.0% | 100.0% | 0.0% | 1.0 | 0.03s |
+| MR | 10 | 0 | 100.0% | 16.7% | 100.0% | 0.0% | 1.0 | 9.22s |
+
+### Setup: gate
+| Language | Questions | Errors | Citation Valid | Ungrounded Answers | Trap Refusal | Answerable Refusal | Avg Calls | Avg Latency |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| EN | 10 | 0 | 100.0% | 0.0% | 100.0% | 14.3% | 1.1 | 13.62s |
+| HI | 10 | 0 | 100.0% | 0.0% | 100.0% | 0.0% | 1.0 | 10.26s |
+| MR | 10 | 0 | 100.0% | 0.0% | 100.0% | 0.0% | 1.0 | 0.01s |
 

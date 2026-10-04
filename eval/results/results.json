@@ -1,10 +1,11 @@
 {
   "metadata": {
-    "timestamp": "2026-10-04 07:00:48 UTC",
-    "questions_count": 5,
+    "timestamp": "2026-10-04 07:04:38 UTC",
+    "questions_count": 30,
     "passages_count": 27,
     "setups": [
-      "raw"
+      "raw",
+      "gate"
     ],
     "min_bm25_score": 1.5,
     "overlap_threshold": 0.6,
@@ -13,60 +14,120 @@
   "summary": {
     "raw": {
       "overall": {
-        "total_questions": 5,
-        "valid_questions": 5,
+        "total_questions": 30,
+        "valid_questions": 30,
         "errors": 0,
         "citation_valid_rate": 1.0,
-        "ungrounded_answer_rate": 0.2,
+        "ungrounded_answer_rate": 0.1,
         "wrong_answer_rate_on_traps": 0.0,
-        "correct_refusal_rate_on_traps": 0.0,
+        "correct_refusal_rate_on_traps": 1.0,
         "refusal_rate_on_answerable": 0.0,
         "avg_model_calls": 1.0,
         "avg_extra_model_calls": 0.0,
-        "avg_latency": 0.02,
+        "avg_latency": 3.09,
         "escalation_rate": 0.0
       },
       "by_language": {
         "en": {
-          "total_questions": 5,
-          "valid_questions": 5,
+          "total_questions": 10,
+          "valid_questions": 10,
           "errors": 0,
           "citation_valid_rate": 1.0,
-          "ungrounded_answer_rate": 0.2,
+          "ungrounded_answer_rate": 0.143,
           "wrong_answer_rate_on_traps": 0.0,
-          "correct_refusal_rate_on_traps": 0.0,
+          "correct_refusal_rate_on_traps": 1.0,
           "refusal_rate_on_answerable": 0.0,
           "avg_model_calls": 1.0,
           "avg_extra_model_calls": 0.0,
-          "avg_latency": 0.02,
+          "avg_latency": 0.01,
           "escalation_rate": 0.0
         },
         "hi": {
-          "total_questions": 0,
-          "valid_questions": 0,
+          "total_questions": 10,
+          "valid_questions": 10,
           "errors": 0,
-          "citation_valid_rate": 0.0,
+          "citation_valid_rate": 1.0,
           "ungrounded_answer_rate": 0.0,
           "wrong_answer_rate_on_traps": 0.0,
-          "correct_refusal_rate_on_traps": 0.0,
+          "correct_refusal_rate_on_traps": 1.0,
           "refusal_rate_on_answerable": 0.0,
-          "avg_model_calls": 0.0,
+          "avg_model_calls": 1.0,
           "avg_extra_model_calls": 0.0,
-          "avg_latency": 0.0,
+          "avg_latency": 0.03,
           "escalation_rate": 0.0
         },
         "mr": {
-          "total_questions": 0,
-          "valid_questions": 0,
+          "total_questions": 10,
+          "valid_questions": 10,
           "errors": 0,
-          "citation_valid_rate": 0.0,
+          "citation_valid_rate": 1.0,
+          "ungrounded_answer_rate": 0.167,
+          "wrong_answer_rate_on_traps": 0.0,
+          "correct_refusal_rate_on_traps": 1.0,
+          "refusal_rate_on_answerable": 0.0,
+          "avg_model_calls": 1.0,
+          "avg_extra_model_calls": 0.0,
+          "avg_latency": 9.22,
+          "escalation_rate": 0.0
+        }
+      }
+    },
+    "gate": {
+      "overall": {
+        "total_questions": 30,
+        "valid_questions": 30,
+        "errors": 0,
+        "citation_valid_rate": 1.0,
+        "ungrounded_answer_rate": 0.0,
+        "wrong_answer_rate_on_traps": 0.0,
+        "correct_refusal_rate_on_traps": 1.0,
+        "refusal_rate_on_answerable": 0.05,
+        "avg_model_calls": 1.03,
+        "avg_extra_model_calls": 0.03,
+        "avg_latency": 7.97,
+        "escalation_rate": 0.033
+      },
+      "by_language": {
+        "en": {
+          "total_questions": 10,
+          "valid_questions": 10,
+          "errors": 0,
+          "citation_valid_rate": 1.0,
           "ungrounded_answer_rate": 0.0,
           "wrong_answer_rate_on_traps": 0.0,
-          "correct_refusal_rate_on_traps": 0.0,
+          "correct_refusal_rate_on_traps": 1.0,
+          "refusal_rate_on_answerable": 0.143,
+          "avg_model_calls": 1.1,
+          "avg_extra_model_calls": 0.1,
+          "avg_latency": 13.62,
+          "escalation_rate": 0.1
+        },
+        "hi": {
+          "total_questions": 10,
+          "valid_questions": 10,
+          "errors": 0,
+          "citation_valid_rate": 1.0,
+          "ungrounded_answer_rate": 0.0,
+          "wrong_answer_rate_on_traps": 0.0,
+          "correct_refusal_rate_on_traps": 1.0,
           "refusal_rate_on_answerable": 0.0,
-          "avg_model_calls": 0.0,
+          "avg_model_calls": 1.0,
           "avg_extra_model_calls": 0.0,
-          "avg_latency": 0.0,
+          "avg_latency": 10.26,
+          "escalation_rate": 0.0
+        },
+        "mr": {
+          "total_questions": 10,
+          "valid_questions": 10,
+          "errors": 0,
+          "citation_valid_rate": 1.0,
+          "ungrounded_answer_rate": 0.0,
+          "wrong_answer_rate_on_traps": 0.0,
+          "correct_refusal_rate_on_traps": 1.0,
+          "refusal_rate_on_answerable": 0.0,
+          "avg_model_calls": 1.0,
+          "avg_extra_model_calls": 0.0,
+          "avg_latency": 0.01,
           "escalation_rate": 0.0
         }
       }
@@ -91,7 +152,7 @@
         ],
         "model_calls": 1,
         "escalated": false,
-        "latency": 0.02,
+        "latency": 0.0,
         "is_grounded": true
       },
       {
@@ -111,7 +172,7 @@
         ],
         "model_calls": 1,
         "escalated": false,
-        "latency": 0.02,
+        "latency": 0.01,
         "is_grounded": true
       },
       {
@@ -131,7 +192,7 @@
         ],
         "model_calls": 1,
         "escalated": false,
-        "latency": 0.02,
+        "latency": 0.0,
         "is_grounded": true
       },
       {
@@ -151,7 +212,7 @@
         ],
         "model_calls": 1,
         "escalated": false,
-        "latency": 0.02,
+        "latency": 0.0,
         "is_grounded": true
       },
       {
@@ -171,7 +232,1067 @@
         ],
         "model_calls": 1,
         "escalated": false,
+        "latency": 0.0,
+        "is_grounded": false
+      },
+      {
+        "id": "Q_EN_06",
+        "setup": "raw",
+        "lang": "en",
+        "answerable": true,
+        "outcome": "passed",
+        "answer": "350000 rupees",
+        "sources": [
+          "T06_EN"
+        ],
+        "retrieved_passage_ids": [
+          "T06_EN",
+          "T08_EN",
+          "T04_EN"
+        ],
+        "model_calls": 1,
+        "escalated": false,
         "latency": 0.02,
+        "is_grounded": true
+      },
+      {
+        "id": "Q_EN_07",
+        "setup": "raw",
+        "lang": "en",
+        "answerable": true,
+        "outcome": "passed",
+        "answer": "18000 rupees",
+        "sources": [
+          "T07_EN"
+        ],
+        "retrieved_passage_ids": [
+          "T07_EN",
+          "T02_EN",
+          "T04_EN"
+        ],
+        "model_calls": 1,
+        "escalated": false,
+        "latency": 0.02,
+        "is_grounded": true
+      },
+      {
+        "id": "Q_EN_08",
+        "setup": "raw",
+        "lang": "en",
+        "answerable": false,
+        "outcome": "refused",
+        "answer": "I cannot answer this question based on the provided sources.",
+        "sources": [],
+        "retrieved_passage_ids": [
+          "T01_EN",
+          "T08_EN",
+          "T09_EN"
+        ],
+        "model_calls": 1,
+        "escalated": false,
+        "latency": 0.03,
+        "is_grounded": true
+      },
+      {
+        "id": "Q_EN_09",
+        "setup": "raw",
+        "lang": "en",
+        "answerable": false,
+        "outcome": "refused",
+        "answer": "I cannot answer this question based on the provided sources.",
+        "sources": [],
+        "retrieved_passage_ids": [
+          "T07_EN",
+          "T05_EN",
+          "T01_EN"
+        ],
+        "model_calls": 1,
+        "escalated": false,
+        "latency": 0.03,
+        "is_grounded": true
+      },
+      {
+        "id": "Q_EN_10",
+        "setup": "raw",
+        "lang": "en",
+        "answerable": false,
+        "outcome": "refused",
+        "answer": "I cannot answer this question based on the provided sources.",
+        "sources": [],
+        "retrieved_passage_ids": [
+          "T01_EN",
+          "T08_EN",
+          "T05_EN"
+        ],
+        "model_calls": 1,
+        "escalated": false,
+        "latency": 0.02,
+        "is_grounded": true
+      },
+      {
+        "id": "Q_HI_01",
+        "setup": "raw",
+        "lang": "hi",
+        "answerable": true,
+        "outcome": "passed",
+        "answer": "काल्पनिक फसल कल्याण अनुदान के अंतर्गत पंजीकृत लघु किसानों को प्रति वर्ष ७५०० रुपये की सहायता प्रदान की जाती है।",
+        "sources": [
+          "T01_HI"
+        ],
+        "retrieved_passage_ids": [
+          "T01_HI",
+          "T07_HI",
+          "T04_HI"
+        ],
+        "model_calls": 1,
+        "escalated": false,
+        "latency": 0.02,
+        "is_grounded": true
+      },
+      {
+        "id": "Q_HI_02",
+        "setup": "raw",
+        "lang": "hi",
+        "answerable": true,
+        "outcome": "passed",
+        "answer": "सरकार प्रायोगिक सौर पंप सब्सिडी योजना के तहत 5 हॉर्सपावर के कृषि सिंचाई पंप की स्थापना हेतु 85% पूंजीगत सब्सिडी प्रदान करती है।",
+        "sources": [
+          "T02_HI"
+        ],
+        "retrieved_passage_ids": [
+          "T02_HI",
+          "T06_HI",
+          "T07_HI"
+        ],
+        "model_calls": 1,
+        "escalated": false,
+        "latency": 0.02,
+        "is_grounded": true
+      },
+      {
+        "id": "Q_HI_03",
+        "setup": "raw",
+        "lang": "hi",
+        "answerable": true,
+        "outcome": "passed",
+        "answer": "४५० रुपये",
+        "sources": [
+          "T03_HI"
+        ],
+        "retrieved_passage_ids": [
+          "T03_HI",
+          "T04_HI",
+          "T09_HI"
+        ],
+        "model_calls": 1,
+        "escalated": false,
+        "latency": 0.02,
+        "is_grounded": true
+      },
+      {
+        "id": "Q_HI_04",
+        "setup": "raw",
+        "lang": "hi",
+        "answerable": true,
+        "outcome": "passed",
+        "answer": "प्रत्येक सहकारी समिति प्रति वर्ष अधिकतम 50 मीट्रिक टन वर्मीकंपोस्ट पर छूट प्राप्त कर सकती है।",
+        "sources": [
+          "T04_HI"
+        ],
+        "retrieved_passage_ids": [
+          "T04_HI",
+          "T01_HI",
+          "T09_HI"
+        ],
+        "model_calls": 1,
+        "escalated": false,
+        "latency": 0.03,
+        "is_grounded": true
+      },
+      {
+        "id": "Q_HI_05",
+        "setup": "raw",
+        "lang": "hi",
+        "answerable": true,
+        "outcome": "passed",
+        "answer": "योजना ड्रिप पाइप सामग्री लागत का ७०% हिस्सा वहन करती है।",
+        "sources": [
+          "T05_HI"
+        ],
+        "retrieved_passage_ids": [
+          "T05_HI",
+          "T02_HI",
+          "T06_HI"
+        ],
+        "model_calls": 1,
+        "escalated": false,
+        "latency": 0.03,
+        "is_grounded": true
+      },
+      {
+        "id": "Q_HI_06",
+        "setup": "raw",
+        "lang": "hi",
+        "answerable": true,
+        "outcome": "passed",
+        "answer": "कृत्रिम धान्य भंडारण गोदाम अनुदान योजना के तहत न्यूनतम 250 मीट्रिक टन क्षमता वाले ग्रामीण अनाज गोदाम के निर्माण हेतु 350000 रुपये का अनुदान दिया जाता है।",
+        "sources": [
+          "T06_HI"
+        ],
+        "retrieved_passage_ids": [
+          "T06_HI",
+          "T01_HI",
+          "T09_HI"
+        ],
+        "model_calls": 1,
+        "escalated": false,
+        "latency": 0.05,
+        "is_grounded": true
+      },
+      {
+        "id": "Q_HI_07",
+        "setup": "raw",
+        "lang": "hi",
+        "answerable": true,
+        "outcome": "passed",
+        "answer": "18000 रुपये",
+        "sources": [
+          "T07_HI"
+        ],
+        "retrieved_passage_ids": [
+          "T07_HI",
+          "T06_HI",
+          "T02_HI"
+        ],
+        "model_calls": 1,
+        "escalated": false,
+        "latency": 0.02,
+        "is_grounded": true
+      },
+      {
+        "id": "Q_HI_08",
+        "setup": "raw",
+        "lang": "hi",
+        "answerable": false,
+        "outcome": "refused",
+        "answer": "प्रदान किए गए स्रोतों के आधार पर मैं इस प्रश्न का उत्तर नहीं दे सकता।",
+        "sources": [],
+        "retrieved_passage_ids": [
+          "T06_HI",
+          "T05_HI",
+          "T09_HI"
+        ],
+        "model_calls": 1,
+        "escalated": false,
+        "latency": 0.04,
+        "is_grounded": true
+      },
+      {
+        "id": "Q_HI_09",
+        "setup": "raw",
+        "lang": "hi",
+        "answerable": false,
+        "outcome": "refused",
+        "answer": "प्रदान किए गए स्रोतों के आधार पर मैं इस प्रश्न का उत्तर नहीं दे सकता।",
+        "sources": [],
+        "retrieved_passage_ids": [
+          "T05_HI",
+          "T07_HI",
+          "T04_HI"
+        ],
+        "model_calls": 1,
+        "escalated": false,
+        "latency": 0.03,
+        "is_grounded": true
+      },
+      {
+        "id": "Q_HI_10",
+        "setup": "raw",
+        "lang": "hi",
+        "answerable": false,
+        "outcome": "refused",
+        "answer": "प्रदान किए गए स्रोतों के आधार पर मैं इस प्रश्न का उत्तर नहीं दे सकता।",
+        "sources": [],
+        "retrieved_passage_ids": [
+          "T02_HI",
+          "T04_HI",
+          "T07_HI"
+        ],
+        "model_calls": 1,
+        "escalated": false,
+        "latency": 0.02,
+        "is_grounded": true
+      },
+      {
+        "id": "Q_MR_01",
+        "setup": "raw",
+        "lang": "mr",
+        "answerable": true,
+        "outcome": "passed",
+        "answer": "नोंदणीकृत अल्पभूधारक शेतकऱ्यांना दरवर्षी ७५०० रुपये आर्थिक सहाय्य मिळते.",
+        "sources": [
+          "T01_MR"
+        ],
+        "retrieved_passage_ids": [
+          "T01_MR",
+          "T04_MR",
+          "T02_MR"
+        ],
+        "model_calls": 1,
+        "escalated": false,
+        "latency": 0.03,
+        "is_grounded": true
+      },
+      {
+        "id": "Q_MR_02",
+        "setup": "raw",
+        "lang": "mr",
+        "answerable": true,
+        "outcome": "passed",
+        "answer": "शेतकऱ्याला १५% स्वहिस्सा भरावा लागतो.",
+        "sources": [
+          "T02_MR"
+        ],
+        "retrieved_passage_ids": [
+          "T02_MR",
+          "T08_MR",
+          "T01_MR"
+        ],
+        "model_calls": 1,
+        "escalated": false,
+        "latency": 0.02,
+        "is_grounded": false
+      },
+      {
+        "id": "Q_MR_03",
+        "setup": "raw",
+        "lang": "mr",
+        "answerable": true,
+        "outcome": "passed",
+        "answer": "विमित दुभत्या गायीसाठी जास्तीत जास्त नुकसान भरपाई ४०,००० रुपये निश्चित आहे.",
+        "sources": [
+          "T03_MR"
+        ],
+        "retrieved_passage_ids": [
+          "T03_MR",
+          "T04_MR",
+          "T05_MR"
+        ],
+        "model_calls": 1,
+        "escalated": false,
+        "latency": 0.02,
+        "is_grounded": true
+      },
+      {
+        "id": "Q_MR_04",
+        "setup": "raw",
+        "lang": "mr",
+        "answerable": true,
+        "outcome": "passed",
+        "answer": "१२०० रुपये प्रति मेट्रिक टन",
+        "sources": [
+          "T04_MR"
+        ],
+        "retrieved_passage_ids": [
+          "T04_MR",
+          "T03_MR",
+          "T07_MR"
+        ],
+        "model_calls": 1,
+        "escalated": false,
+        "latency": 0.02,
+        "is_grounded": true
+      },
+      {
+        "id": "Q_MR_05",
+        "setup": "raw",
+        "lang": "mr",
+        "answerable": true,
+        "outcome": "passed",
+        "answer": "किमान ५००० मत्स्यबीज",
+        "sources": [
+          "T08_MR"
+        ],
+        "retrieved_passage_ids": [
+          "T08_MR",
+          "T01_MR",
+          "T07_MR"
+        ],
+        "model_calls": 1,
+        "escalated": false,
+        "latency": 0.06,
+        "is_grounded": true
+      },
+      {
+        "id": "Q_MR_06",
+        "setup": "raw",
+        "lang": "mr",
+        "answerable": true,
+        "outcome": "passed",
+        "answer": "प्रति १००० चौरस मीटरसाठी २२०००० रुपये",
+        "sources": [
+          "T09_MR"
+        ],
+        "retrieved_passage_ids": [
+          "T09_MR",
+          "T03_MR",
+          "T07_MR"
+        ],
+        "model_calls": 1,
+        "escalated": false,
+        "latency": 19.31,
+        "is_grounded": true
+      },
+      {
+        "id": "Q_MR_07",
+        "setup": "raw",
+        "lang": "mr",
+        "answerable": false,
+        "outcome": "refused",
+        "answer": "उपलब्ध माहितीच्या आधारे मी या प्रश्नाचे उत्तर देऊ शकत नाही.",
+        "sources": [],
+        "retrieved_passage_ids": [
+          "T04_MR",
+          "T02_MR",
+          "T07_MR"
+        ],
+        "model_calls": 1,
+        "escalated": false,
+        "latency": 24.44,
+        "is_grounded": true
+      },
+      {
+        "id": "Q_MR_08",
+        "setup": "raw",
+        "lang": "mr",
+        "answerable": false,
+        "outcome": "refused",
+        "answer": "उपलब्ध माहितीच्या आधारे मी या प्रश्नाचे उत्तर देऊ शकत नाही.",
+        "sources": [],
+        "retrieved_passage_ids": [
+          "T03_MR",
+          "T05_MR",
+          "T08_MR"
+        ],
+        "model_calls": 1,
+        "escalated": false,
+        "latency": 0.05,
+        "is_grounded": true
+      },
+      {
+        "id": "Q_MR_09",
+        "setup": "raw",
+        "lang": "mr",
+        "answerable": false,
+        "outcome": "refused",
+        "answer": "उपलब्ध माहितीच्या आधारे मी या प्रश्नाचे उत्तर देऊ शकत नाही.",
+        "sources": [],
+        "retrieved_passage_ids": [
+          "T05_MR",
+          "T01_MR",
+          "T08_MR"
+        ],
+        "model_calls": 1,
+        "escalated": false,
+        "latency": 0.03,
+        "is_grounded": true
+      },
+      {
+        "id": "Q_MR_10",
+        "setup": "raw",
+        "lang": "mr",
+        "answerable": false,
+        "outcome": "refused",
+        "answer": "उपलब्ध माहितीच्या आधारे मी या प्रश्नाचे उत्तर देऊ शकत नाही.",
+        "sources": [],
+        "retrieved_passage_ids": [
+          "T01_MR",
+          "T01_HI",
+          "T08_MR"
+        ],
+        "model_calls": 1,
+        "escalated": false,
+        "latency": 48.18,
+        "is_grounded": true
+      }
+    ],
+    "gate": [
+      {
+        "id": "Q_EN_01",
+        "setup": "gate",
+        "lang": "en",
+        "answerable": true,
+        "outcome": "passed",
+        "answer": "Smallholder farmers can receive an annual assistance of 7500 rupees under the Fictional Crop Welfare Grant.",
+        "sources": [
+          "T01_EN"
+        ],
+        "retrieved_passage_ids": [
+          "T01_EN",
+          "T07_EN",
+          "T03_EN"
+        ],
+        "model_calls": 1,
+        "escalated": false,
+        "latency": 0.04,
+        "is_grounded": true
+      },
+      {
+        "id": "Q_EN_02",
+        "setup": "gate",
+        "lang": "en",
+        "answerable": true,
+        "outcome": "passed",
+        "answer": "85%",
+        "sources": [
+          "T02_EN"
+        ],
+        "retrieved_passage_ids": [
+          "T02_EN",
+          "T06_EN",
+          "T05_EN"
+        ],
+        "model_calls": 1,
+        "escalated": false,
+        "latency": 14.56,
+        "is_grounded": true
+      },
+      {
+        "id": "Q_EN_03",
+        "setup": "gate",
+        "lang": "en",
+        "answerable": true,
+        "outcome": "passed",
+        "answer": "The maximum financial compensation is capped at 40000 rupees per insured milch cow.",
+        "sources": [
+          "T03_EN"
+        ],
+        "retrieved_passage_ids": [
+          "T03_EN",
+          "T04_EN",
+          "T08_EN"
+        ],
+        "model_calls": 1,
+        "escalated": false,
+        "latency": 12.55,
+        "is_grounded": true
+      },
+      {
+        "id": "Q_EN_04",
+        "setup": "gate",
+        "lang": "en",
+        "answerable": true,
+        "outcome": "passed",
+        "answer": "1200 rupees per metric ton",
+        "sources": [
+          "T04_EN"
+        ],
+        "retrieved_passage_ids": [
+          "T04_EN",
+          "T03_EN",
+          "T07_EN"
+        ],
+        "model_calls": 1,
+        "escalated": false,
+        "latency": 10.54,
+        "is_grounded": true
+      },
+      {
+        "id": "Q_EN_05",
+        "setup": "gate",
+        "lang": "en",
+        "answerable": true,
+        "outcome": "failed",
+        "answer": "I cannot answer this question based on the provided sources.",
+        "sources": [],
+        "retrieved_passage_ids": [
+          "T05_EN",
+          "T02_EN",
+          "T03_EN"
+        ],
+        "model_calls": 2,
+        "escalated": true,
+        "latency": 35.17,
+        "is_grounded": false
+      },
+      {
+        "id": "Q_EN_06",
+        "setup": "gate",
+        "lang": "en",
+        "answerable": true,
+        "outcome": "passed",
+        "answer": "350000 rupees",
+        "sources": [
+          "T06_EN"
+        ],
+        "retrieved_passage_ids": [
+          "T06_EN",
+          "T08_EN",
+          "T04_EN"
+        ],
+        "model_calls": 1,
+        "escalated": false,
+        "latency": 9.74,
+        "is_grounded": true
+      },
+      {
+        "id": "Q_EN_07",
+        "setup": "gate",
+        "lang": "en",
+        "answerable": true,
+        "outcome": "passed",
+        "answer": "The discount voucher value for purchasing power tillers is 18000 rupees.",
+        "sources": [
+          "T07_EN"
+        ],
+        "retrieved_passage_ids": [
+          "T07_EN",
+          "T02_EN",
+          "T04_EN"
+        ],
+        "model_calls": 1,
+        "escalated": false,
+        "latency": 37.22,
+        "is_grounded": true
+      },
+      {
+        "id": "Q_EN_08",
+        "setup": "gate",
+        "lang": "en",
+        "answerable": false,
+        "outcome": "refused",
+        "answer": "I cannot answer this question based on the provided sources.",
+        "sources": [],
+        "retrieved_passage_ids": [
+          "T01_EN",
+          "T08_EN",
+          "T09_EN"
+        ],
+        "model_calls": 1,
+        "escalated": false,
+        "latency": 0.01,
+        "is_grounded": false
+      },
+      {
+        "id": "Q_EN_09",
+        "setup": "gate",
+        "lang": "en",
+        "answerable": false,
+        "outcome": "refused",
+        "answer": "I cannot answer this question based on the provided sources.",
+        "sources": [],
+        "retrieved_passage_ids": [
+          "T07_EN",
+          "T05_EN",
+          "T01_EN"
+        ],
+        "model_calls": 1,
+        "escalated": false,
+        "latency": 9.04,
+        "is_grounded": false
+      },
+      {
+        "id": "Q_EN_10",
+        "setup": "gate",
+        "lang": "en",
+        "answerable": false,
+        "outcome": "refused",
+        "answer": "I cannot answer this question based on the provided sources.",
+        "sources": [],
+        "retrieved_passage_ids": [
+          "T01_EN",
+          "T08_EN",
+          "T05_EN"
+        ],
+        "model_calls": 1,
+        "escalated": false,
+        "latency": 7.34,
+        "is_grounded": false
+      },
+      {
+        "id": "Q_HI_01",
+        "setup": "gate",
+        "lang": "hi",
+        "answerable": true,
+        "outcome": "passed",
+        "answer": "काल्पनिक फसल कल्याण अनुदान के अंतर्गत पंजीकृत लघु किसानों को प्रति वर्ष ७५०० रुपये की सहायता प्रदान की जाती है।",
+        "sources": [
+          "T01_HI"
+        ],
+        "retrieved_passage_ids": [
+          "T01_HI",
+          "T07_HI",
+          "T04_HI"
+        ],
+        "model_calls": 1,
+        "escalated": false,
+        "latency": 0.02,
+        "is_grounded": true
+      },
+      {
+        "id": "Q_HI_02",
+        "setup": "gate",
+        "lang": "hi",
+        "answerable": true,
+        "outcome": "passed",
+        "answer": "सरकार प्रायोगिक सौर पंप सब्सिडी योजना के तहत ५ हॉर्सपावर के कृषि सिंचाई पंप की स्थापना हेतु ८५% पूंजीगत सब्सिडी प्रदान करती है।",
+        "sources": [
+          "T02_HI"
+        ],
+        "retrieved_passage_ids": [
+          "T02_HI",
+          "T06_HI",
+          "T07_HI"
+        ],
+        "model_calls": 1,
+        "escalated": false,
+        "latency": 6.3,
+        "is_grounded": true
+      },
+      {
+        "id": "Q_HI_03",
+        "setup": "gate",
+        "lang": "hi",
+        "answerable": true,
+        "outcome": "passed",
+        "answer": "काल्पनिक दुग्ध पशुधन बीमा योजना में देशी गाय की सुरक्षा के लिए प्रति पशु ₹450 का वार्षिक प्रीमियम देना होगा।",
+        "sources": [
+          "T03_HI"
+        ],
+        "retrieved_passage_ids": [
+          "T03_HI",
+          "T04_HI",
+          "T09_HI"
+        ],
+        "model_calls": 1,
+        "escalated": false,
+        "latency": 6.7,
+        "is_grounded": true
+      },
+      {
+        "id": "Q_HI_04",
+        "setup": "gate",
+        "lang": "hi",
+        "answerable": true,
+        "outcome": "passed",
+        "answer": "50 मीट्रिक टन",
+        "sources": [
+          "T04_HI"
+        ],
+        "retrieved_passage_ids": [
+          "T04_HI",
+          "T01_HI",
+          "T09_HI"
+        ],
+        "model_calls": 1,
+        "escalated": false,
+        "latency": 9.73,
+        "is_grounded": true
+      },
+      {
+        "id": "Q_HI_05",
+        "setup": "gate",
+        "lang": "hi",
+        "answerable": true,
+        "outcome": "passed",
+        "answer": "७०%",
+        "sources": [
+          "T05_HI"
+        ],
+        "retrieved_passage_ids": [
+          "T05_HI",
+          "T02_HI",
+          "T06_HI"
+        ],
+        "model_calls": 1,
+        "escalated": false,
+        "latency": 22.3,
+        "is_grounded": true
+      },
+      {
+        "id": "Q_HI_06",
+        "setup": "gate",
+        "lang": "hi",
+        "answerable": true,
+        "outcome": "passed",
+        "answer": "कृत्रिम धान्य भंडारण गोदाम अनुदान योजना के तहत न्यूनतम 250 मीट्रिक टन क्षमता वाले ग्रामीण अनाज गोदाम के निर्माण हेतु 350000 रुपये का अनुदान दिया जाता है।",
+        "sources": [
+          "T06_HI"
+        ],
+        "retrieved_passage_ids": [
+          "T06_HI",
+          "T01_HI",
+          "T09_HI"
+        ],
+        "model_calls": 1,
+        "escalated": false,
+        "latency": 13.89,
+        "is_grounded": true
+      },
+      {
+        "id": "Q_HI_07",
+        "setup": "gate",
+        "lang": "hi",
+        "answerable": true,
+        "outcome": "passed",
+        "answer": "आदर्श कृषि यांत्रिकीकरण वाउचर कार्यक्रम पॉवर टिलर की खरीद पर 18000 रुपये का छूट कूपन प्रदान करता है।",
+        "sources": [
+          "T07_HI"
+        ],
+        "retrieved_passage_ids": [
+          "T07_HI",
+          "T06_HI",
+          "T02_HI"
+        ],
+        "model_calls": 1,
+        "escalated": false,
+        "latency": 4.62,
+        "is_grounded": true
+      },
+      {
+        "id": "Q_HI_08",
+        "setup": "gate",
+        "lang": "hi",
+        "answerable": false,
+        "outcome": "refused",
+        "answer": "प्रदान किए गए स्रोतों के आधार पर मैं इस प्रश्न का उत्तर नहीं दे सकता।",
+        "sources": [],
+        "retrieved_passage_ids": [
+          "T06_HI",
+          "T05_HI",
+          "T09_HI"
+        ],
+        "model_calls": 1,
+        "escalated": false,
+        "latency": 7.45,
+        "is_grounded": false
+      },
+      {
+        "id": "Q_HI_09",
+        "setup": "gate",
+        "lang": "hi",
+        "answerable": false,
+        "outcome": "refused",
+        "answer": "प्रदान किए गए स्रोतों के आधार पर मैं इस प्रश्न का उत्तर नहीं दे सकता।",
+        "sources": [],
+        "retrieved_passage_ids": [
+          "T05_HI",
+          "T07_HI",
+          "T04_HI"
+        ],
+        "model_calls": 1,
+        "escalated": false,
+        "latency": 14.98,
+        "is_grounded": false
+      },
+      {
+        "id": "Q_HI_10",
+        "setup": "gate",
+        "lang": "hi",
+        "answerable": false,
+        "outcome": "refused",
+        "answer": "प्रदान किए गए स्रोतों के आधार पर मैं इस प्रश्न का उत्तर नहीं दे सकता।",
+        "sources": [],
+        "retrieved_passage_ids": [
+          "T02_HI",
+          "T04_HI",
+          "T07_HI"
+        ],
+        "model_calls": 1,
+        "escalated": false,
+        "latency": 16.61,
+        "is_grounded": false
+      },
+      {
+        "id": "Q_MR_01",
+        "setup": "gate",
+        "lang": "mr",
+        "answerable": true,
+        "outcome": "passed",
+        "answer": "नोंदणीकृत अल्पभूधारक शेतकऱ्यांना दरवर्षी ७५०० रुपये आर्थिक सहाय्य मिळते.",
+        "sources": [
+          "T01_MR"
+        ],
+        "retrieved_passage_ids": [
+          "T01_MR",
+          "T04_MR",
+          "T02_MR"
+        ],
+        "model_calls": 1,
+        "escalated": false,
+        "latency": 0.01,
+        "is_grounded": true
+      },
+      {
+        "id": "Q_MR_02",
+        "setup": "gate",
+        "lang": "mr",
+        "answerable": true,
+        "outcome": "passed",
+        "answer": "१५%",
+        "sources": [
+          "T02_MR"
+        ],
+        "retrieved_passage_ids": [
+          "T02_MR",
+          "T08_MR",
+          "T01_MR"
+        ],
+        "model_calls": 1,
+        "escalated": false,
+        "latency": 0.0,
+        "is_grounded": true
+      },
+      {
+        "id": "Q_MR_03",
+        "setup": "gate",
+        "lang": "mr",
+        "answerable": true,
+        "outcome": "passed",
+        "answer": "विमित दुभत्या गायीसाठी जास्तीत जास्त नुकसान भरपाई ४०,००० रुपये निश्चित केलेली आहे.",
+        "sources": [
+          "T03_MR"
+        ],
+        "retrieved_passage_ids": [
+          "T03_MR",
+          "T04_MR",
+          "T05_MR"
+        ],
+        "model_calls": 1,
+        "escalated": false,
+        "latency": 0.0,
+        "is_grounded": true
+      },
+      {
+        "id": "Q_MR_04",
+        "setup": "gate",
+        "lang": "mr",
+        "answerable": true,
+        "outcome": "passed",
+        "answer": "प्रति मेट्रिक टन १२०० रुपये परतावा मिळते.",
+        "sources": [
+          "T04_MR"
+        ],
+        "retrieved_passage_ids": [
+          "T04_MR",
+          "T03_MR",
+          "T07_MR"
+        ],
+        "model_calls": 1,
+        "escalated": false,
+        "latency": 0.02,
+        "is_grounded": true
+      },
+      {
+        "id": "Q_MR_05",
+        "setup": "gate",
+        "lang": "mr",
+        "answerable": true,
+        "outcome": "passed",
+        "answer": "लाभार्थ्याने किमान ५००० मत्स्यबीज सोडणे आवश्यक आहे.",
+        "sources": [
+          "T08_MR"
+        ],
+        "retrieved_passage_ids": [
+          "T08_MR",
+          "T01_MR",
+          "T07_MR"
+        ],
+        "model_calls": 1,
+        "escalated": false,
+        "latency": 0.02,
+        "is_grounded": true
+      },
+      {
+        "id": "Q_MR_06",
+        "setup": "gate",
+        "lang": "mr",
+        "answerable": true,
+        "outcome": "passed",
+        "answer": "२२०००० रुपये",
+        "sources": [
+          "T09_MR"
+        ],
+        "retrieved_passage_ids": [
+          "T09_MR",
+          "T03_MR",
+          "T07_MR"
+        ],
+        "model_calls": 1,
+        "escalated": false,
+        "latency": 0.02,
+        "is_grounded": true
+      },
+      {
+        "id": "Q_MR_07",
+        "setup": "gate",
+        "lang": "mr",
+        "answerable": false,
+        "outcome": "refused",
+        "answer": "उपलब्ध माहितीच्या आधारे मी या प्रश्नाचे उत्तर देऊ शकत नाही.",
+        "sources": [],
+        "retrieved_passage_ids": [
+          "T04_MR",
+          "T02_MR",
+          "T07_MR"
+        ],
+        "model_calls": 1,
+        "escalated": false,
+        "latency": 0.02,
+        "is_grounded": false
+      },
+      {
+        "id": "Q_MR_08",
+        "setup": "gate",
+        "lang": "mr",
+        "answerable": false,
+        "outcome": "refused",
+        "answer": "उपलब्ध माहितीच्या आधारे मी या प्रश्नाचे उत्तर देऊ शकत नाही.",
+        "sources": [],
+        "retrieved_passage_ids": [
+          "T03_MR",
+          "T05_MR",
+          "T08_MR"
+        ],
+        "model_calls": 1,
+        "escalated": false,
+        "latency": 0.02,
+        "is_grounded": false
+      },
+      {
+        "id": "Q_MR_09",
+        "setup": "gate",
+        "lang": "mr",
+        "answerable": false,
+        "outcome": "refused",
+        "answer": "उपलब्ध माहितीच्या आधारे मी या प्रश्नाचे उत्तर देऊ शकत नाही.",
+        "sources": [],
+        "retrieved_passage_ids": [
+          "T05_MR",
+          "T01_MR",
+          "T08_MR"
+        ],
+        "model_calls": 1,
+        "escalated": false,
+        "latency": 0.02,
+        "is_grounded": false
+      },
+      {
+        "id": "Q_MR_10",
+        "setup": "gate",
+        "lang": "mr",
+        "answerable": false,
+        "outcome": "refused",
+        "answer": "उपलब्ध माहितीच्या आधारे मी या प्रश्नाचे उत्तर देऊ शकत नाही.",
+        "sources": [],
+        "retrieved_passage_ids": [
+          "T01_MR",
+          "T01_HI",
+          "T08_MR"
+        ],
+        "model_calls": 1,
+        "escalated": false,
+        "latency": 0.01,
         "is_grounded": false
       }
     ]
